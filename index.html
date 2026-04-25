@@ -170,18 +170,12 @@
     }
   });
 
-  // pre-fill pre-existing user (browser refresh after demo login)
-  const existing = AIC_DB.getUser();
-  if (existing && AIC_SEC.checkSession().valid) {
-    const r = routeForRole(existing.role);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('logout') !== '1') {
-      console.debug('[AIC Login] active session for ' + existing.email + ' — auto-routing');
-    }
-  } else if (params_get('logout') === '1') {
+  // handle ?logout=1 redirect from sign-out
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('logout') === '1') {
     AIC_DB.signOut();
+    AIC_SEC.invalidateSession('logout');
   }
-  function params_get(k){ try { return new URLSearchParams(window.location.search).get(k); } catch(e) { return null; } }
 })();
 </script>
 

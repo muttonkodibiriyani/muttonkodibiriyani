@@ -1,0 +1,25 @@
+# Alshaya Investment Council — Code Ownership
+
+# Default owners
+*           @alshaya/aic-platform
+
+# Frontend
+*.html      @alshaya/aic-frontend
+/css/       @alshaya/aic-frontend
+/js/        @alshaya/aic-frontend
+
+# Security-critical modules — require security review
+/js/security.js  @alshaya/aic-security
+/js/auth.js      @alshaya/aic-security
+/js/azure-api.js @alshaya/aic-security
+staticwebapp.config.json @alshaya/aic-security
+
+# Infrastructure
+/infra/      @alshaya/aic-platform @alshaya/aic-security
+
+# CI/CD
+/.github/    @alshaya/aic-platform
+
+# Documentation
+*.md         @alshaya/aic-platform
+SECURITY.md  @alshaya/aic-security

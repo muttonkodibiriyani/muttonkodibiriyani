@@ -1,0 +1,17 @@
+# env-injected at deploy time, never commit
+env-config.js
+
+# Node / tooling
+node_modules/
+.npm/
+.cache/
+
+# Local
+.DS_Store
+.vscode/
+*.log
+*.tmp
+
+# Bicep build outputs
+*.json.bak
+*.armTemplate.json

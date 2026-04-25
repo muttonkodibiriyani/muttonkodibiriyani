@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin Console — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-mark">AIC</div><div><div>Investment Council</div><div class="logo-sub">v2.1.0 · ADMIN</div></div></div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item" data-nav-page="strategy-dashboard.html" href="strategy-dashboard.html"><i class="fas fa-clipboard-check"></i> Gatekeeper</a>
+  <a class="nav-item" data-nav-page="cxo-dashboard.html" href="cxo-dashboard.html"><i class="fas fa-chart-line"></i> Council</a>
+  <div class="nav-section-label">Admin</div>
+  <a class="nav-item nav-active" data-nav-page="admin.html" href="admin.html"><i class="fas fa-shield-halved"></i> Admin Console</a>
+  <a class="nav-item" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar">
+    <h1>Admin Console</h1>
+    <div class="top-actions">
+      <span class="badge badge-purple"><i class="fas fa-crown"></i> Platform Admin</span>
+    </div>
+  </header>
+  <main class="page-body">
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="users">User Management</button>
+      <button class="tab" data-tab="permissions">Permission Matrix</button>
+      <button class="tab" data-tab="data">Data Management</button>
+      <button class="tab" data-tab="audit">Audit Log</button>
+      <button class="tab" data-tab="health">System Health</button>
+    </div>
+
+    <!-- USERS -->
+    <section id="tab-users" class="tab-panel active">
+      <div class="card">
+        <div class="card-header">
+          <div class="flex gap-md items-center">
+            <input id="user-search" type="text" placeholder="Search users…" style="max-width:280px;" />
+            <select id="user-filter" style="max-width:200px;">
+              <option value="">All roles</option>
+              <option>Platform_Admin</option>
+              <option>Investment_Committee</option>
+              <option>Strategy_Reviewer</option>
+              <option>Initiative_Submitter</option>
+              <option>Portfolio_Viewer</option>
+            </select>
+          </div>
+          <button id="btn-add-user" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add User</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Title</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbody-users"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERMISSIONS -->
+    <section id="tab-permissions" class="tab-panel">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Role × Permission Matrix</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Permission</th><th>Submitter</th><th>Strategy</th><th>Committee</th><th>Viewer</th><th>Admin</th></tr></thead>
+            <tbody id="tbody-perms"></tbody>
+          </table>
+        </div>
+        <div class="text-xs text-muted mt-md">Permission edits are stored locally in demo mode. Production deployments enforce role bindings via Azure AD app role assignments + APIM policy.</div>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section id="tab-data" class="tab-panel">
+      <div class="grid grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">System Info</h3></div>
+          <div id="sys-info"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Feature Flags</h3></div>
+          <div id="feature-flags"></div>
+        </div>
+      </div>
+      <div class="card mb-lg">
+        <div class="card-header"><h3 class="card-title">Gatekeeper Thresholds</h3></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pass Threshold (<span id="pass-bubble">75</span>)</label>
+            <input id="pass-thresh" type="range" min="50" max="95" value="75" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conditional Threshold (<span id="cond-bubble">60</span>)</label>
+            <input id="cond-thresh" type="range" min="40" max="80" value="60" />
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Data Operations</h3></div>
+        <div class="flex gap-sm" style="flex-wrap:wrap;">
+          <button id="btn-export-all" class="btn btn-secondary"><i class="fas fa-download"></i> Export All Data (JSON)</button>
+          <button id="btn-export-csv" class="btn btn-secondary"><i class="fas fa-file-csv"></i> Export Initiatives CSV</button>
+          <button id="btn-reset" class="btn btn-warning" style="background:var(--color-warning);color:white;"><i class="fas fa-rotate-left"></i> Reset to Sample</button>
+          <button id="btn-clear" class="btn btn-danger"><i class="fas fa-trash"></i> Clear All Data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section id="tab-audit" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="flex gap-md items-center">
+            <input id="audit-search" type="text" placeholder="Search audit log…" style="max-width:280px;" />
+            <select id="audit-sev" style="max-width:160px;">
+              <option value="">All severities</option>
+              <option>INFO</option><option>WARN</option><option>CRITICAL</option>
+            </select>
+          </div>
+          <button id="btn-export-audit" class="btn btn-secondary"><i class="fas fa-download"></i> Export CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Timestamp</th><th>Severity</th><th>Action</th><th>User</th><th>URL</th><th>Data</th></tr></thead>
+            <tbody id="tbody-audit"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEALTH -->
+    <section id="tab-health" class="tab-panel">
+      <div class="grid grid-4 mb-lg" id="health-cards"></div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Diagnostics</h3>
+          <button id="btn-health" class="btn btn-primary"><i class="fas fa-stethoscope"></i> Run Health Check</button>
+        </div>
+        <pre id="health-output" class="text-xs" style="background:var(--color-bg);padding:14px;border-radius:8px;overflow:auto;max-height:300px;color:var(--color-muted);"></pre>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="user-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="user-modal-title">Add User</h3>
+      <button class="modal-close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="u-id" />
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Name</label><input id="u-name" type="text" /></div>
+        <div class="form-group"><label class="form-label">Email</label><input id="u-email" type="email" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Department</label><input id="u-department" type="text" /></div>
+        <div class="form-group"><label class="form-label">Title</label><input id="u-title" type="text" /></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role <small class="text-muted">(default: Platform Admin)</small></label>
+        <select id="u-role">
+          <option value="Platform_Admin">Platform Admin — full system control</option>
+          <option value="Investment_Committee">Investment Committee — vote on investments</option>
+          <option value="Strategy_Reviewer">Strategy Reviewer — gatekeeper scoring</option>
+          <option value="Initiative_Submitter">Initiative Submitter — submit and track</option>
+          <option value="Portfolio_Viewer">Portfolio Viewer — read-only</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:10px;">
+          <input id="u-active" type="checkbox" checked /> Active
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>Cancel</button>
+      <button id="btn-save-user" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save User</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({
+  allowedRoles: ['Platform_Admin'],
+  onReady: async function (user) {
+
+    // ---- Tab switching ----
+    document.getElementById('tabs').addEventListener('click', e => {
+      const t = e.target.closest('.tab');
+      if (!t) return;
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + t.getAttribute('data-tab')).classList.add('active');
+      if (t.getAttribute('data-tab') === 'audit') renderAudit();
+    });
+
+    // ---- USERS ----
+    function renderUsers() {
+      const search = document.getElementById('user-search').value.toLowerCase();
+      const role = document.getElementById('user-filter').value;
+      let users = AIC_DB.getUsers();
+      if (search) users = users.filter(u => u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+      if (role) users = users.filter(u => u.role === role);
+      const tb = document.getElementById('tbody-users');
+      tb.innerHTML = users.map(u =>
+        '<tr><td><div class="avatar" style="width:32px;height:32px;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,var(--color-accent),var(--color-purple));color:white;font-weight:600;">' + AIC_SEC.escapeHtml(u.initials || '?') + '</div></td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(u.name) + '</strong></td>' +
+        '<td class="text-xs">' + AIC_SEC.escapeHtml(u.email) + '</td>' +
+        '<td><span class="badge badge-purple">' + AIC_SEC.escapeHtml(u.role.replace(/_/g,' ')) + '</span></td>' +
+        '<td>' + AIC_SEC.escapeHtml(u.department || '') + '</td>' +
+        '<td>' + AIC_SEC.escapeHtml(u.title || '') + '</td>' +
+        '<td><span class="badge ' + (u.active ? 'badge-success' : 'badge-neutral') + '">' + (u.active ? 'Active' : 'Inactive') + '</span></td>' +
+        '<td><button class="btn btn-sm btn-secondary" data-edit="' + AIC_SEC.encodeAttr(u.id) + '"><i class="fas fa-pen"></i></button> ' +
+        '<button class="btn btn-sm btn-danger" data-del="' + AIC_SEC.encodeAttr(u.id) + '"><i class="fas fa-trash"></i></button></td></tr>'
+      ).join('');
+      tb.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openUserModal(b.getAttribute('data-edit'))));
+      tb.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.getAttribute('data-del');
+        if (id === user.id) { showToast('Cannot delete the currently signed-in user.', 'error'); return; }
+        const ok = await showConfirm('Delete user', 'Permanently remove this user? Their submitted initiatives remain.', 'Delete');
+        if (!ok) return;
+        AIC_DB.deleteUser(id);
+        showToast('User deleted', 'success');
+        renderUsers();
+      }));
+    }
+
+    const modal = document.getElementById('user-modal');
+    function openUserModal(id) {
+      document.getElementById('user-modal-title').textContent = id ? 'Edit User' : 'Add User';
+      const u = id ? AIC_DB.getUserById(id) : { active: true, role: 'Platform_Admin' };
+      document.getElementById('u-id').value = u.id || '';
+      document.getElementById('u-name').value = u.name || '';
+      document.getElementById('u-email').value = u.email || '';
+      document.getElementById('u-department').value = u.department || '';
+      document.getElementById('u-title').value = u.title || '';
+      document.getElementById('u-role').value = u.role || 'Platform_Admin';
+      document.getElementById('u-active').checked = u.active !== false;
+      modal.style.display = 'flex';
+    }
+    document.getElementById('btn-add-user').addEventListener('click', () => openUserModal(null));
+    modal.addEventListener('click', e => { if (e.target === modal || e.target.matches('[data-close]')) modal.style.display = 'none'; });
+    document.getElementById('btn-save-user').addEventListener('click', () => {
+      const ev = AIC_SEC.validate.email(document.getElementById('u-email').value);
+      if (!ev.ok) { showToast('Email: ' + ev.msg, 'error'); return; }
+      const nv = AIC_SEC.validate.text(document.getElementById('u-name').value, { required:true, min:2, max:120 });
+      if (!nv.ok) { showToast('Name: ' + nv.msg, 'error'); return; }
+      const data = {
+        name: nv.value, email: ev.value,
+        department: document.getElementById('u-department').value,
+        title: document.getElementById('u-title').value,
+        role: document.getElementById('u-role').value,
+        active: document.getElementById('u-active').checked
+      };
+      const id = document.getElementById('u-id').value;
+      if (id) {
+        AIC_DB.updateUser(id, data);
+        showToast('User updated', 'success');
+      } else {
+        AIC_DB.createUser(data);
+        showToast('User created with role ' + data.role.replace(/_/g, ' '), 'success');
+      }
+      modal.style.display = 'none';
+      renderUsers();
+    });
+    document.getElementById('user-search').addEventListener('input', renderUsers);
+    document.getElementById('user-filter').addEventListener('change', renderUsers);
+
+    // ---- PERMISSIONS ----
+    function renderPerms() {
+      const perms = [
+        { key:'submit', label:'Submit initiatives', sub:1, str:1, com:1, vw:0, adm:1 },
+        { key:'edit', label:'Edit own drafts', sub:1, str:1, com:1, vw:0, adm:1 },
+        { key:'gk_score', label:'Submit gatekeeper score', sub:0, str:1, com:1, vw:0, adm:1 },
+        { key:'council_vote', label:'Cast council vote', sub:0, str:0, com:1, vw:0, adm:1 },
+        { key:'stage_approve', label:'Approve stage gates', sub:0, str:0, com:1, vw:0, adm:1 },
+        { key:'view_portfolio', label:'View full portfolio', sub:0, str:1, com:1, vw:1, adm:1 },
+        { key:'view_audit', label:'View audit log', sub:0, str:0, com:0, vw:0, adm:1 },
+        { key:'manage_users', label:'Manage users & roles', sub:0, str:0, com:0, vw:0, adm:1 },
+        { key:'export_data', label:'Export portfolio data', sub:0, str:1, com:1, vw:1, adm:1 },
+        { key:'system_config', label:'System configuration', sub:0, str:0, com:0, vw:0, adm:1 }
+      ];
+      const cell = (v) => v ? '<i class="fas fa-circle-check text-success"></i>' : '<i class="fas fa-circle-xmark text-muted"></i>';
+      document.getElementById('tbody-perms').innerHTML = perms.map(p =>
+        '<tr><td><strong>' + AIC_SEC.escapeHtml(p.label) + '</strong></td>' +
+        '<td>' + cell(p.sub) + '</td><td>' + cell(p.str) + '</td><td>' + cell(p.com) + '</td><td>' + cell(p.vw) + '</td><td>' + cell(p.adm) + '</td></tr>'
+      ).join('');
+    }
+
+    // ---- DATA / FLAGS ----
+    function renderSystemInfo() {
+      const inits = AIC_DB.getInitiatives();
+      const users = AIC_DB.getUsers();
+      const drafts = AIC_DB.getDrafts();
+      const audit = AIC_DB.getAuditLog();
+      document.getElementById('sys-info').innerHTML =
+        row('App Version', AIC_CONFIG.app.version) +
+        row('Data Classification', AIC_CONFIG.app.dataClassification) +
+        row('Initiatives', inits.length) +
+        row('Users', users.length) +
+        row('Drafts', drafts.length) +
+        row('Audit Events', audit.length) +
+        row('Local Storage Keys', Object.keys(localStorage).length);
+    }
+    function row(k, v) { return '<div class="flex justify-between text-sm" style="padding:6px 0;border-bottom:1px solid var(--color-border);"><span class="text-muted">' + AIC_SEC.escapeHtml(k) + '</span><strong>' + AIC_SEC.escapeHtml(String(v)) + '</strong></div>'; }
+    function renderFlags() {
+      const flags = AIC_CONFIG.features;
+      document.getElementById('feature-flags').innerHTML = Object.keys(flags).map(k =>
+        '<div class="flex justify-between text-sm" style="padding:6px 0;border-bottom:1px solid var(--color-border);"><span>' + AIC_SEC.escapeHtml(k) + '</span><span class="badge ' + (flags[k] ? 'badge-success' : 'badge-neutral') + '">' + (flags[k] ? 'ON' : 'OFF') + '</span></div>'
+      ).join('') + '<div class="text-xs text-muted mt-md">Feature flags are read from <code>config.js</code> at load time. Toggle in source for production.</div>';
+    }
+
+    document.getElementById('btn-export-all').addEventListener('click', () => {
+      const data = AIC_DB.exportAll();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'aic-export-' + new Date().toISOString().slice(0,10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      AIC_SEC.audit('DATA_EXPORT_ALL', { records: data.initiatives.length + data.users.length }, 'INFO');
+      showToast('Export complete', 'success');
+    });
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+      exportToCsv('aic-initiatives.csv', AIC_DB.getInitiatives().map(i => ({ ID:i.id, Title:i.title, Domain:i.domain, Status:i.status, Stage:i.stage, GK:i.gatekeeperScore, Council:i.councilScore, Budget:i.budgetRequested })));
+    });
+    document.getElementById('btn-reset').addEventListener('click', async () => {
+      const ok = await showConfirm('Reset to sample data', 'This will overwrite all initiatives, users, and drafts with the demo seed data. Continue?', 'Reset');
+      if (!ok) return;
+      AIC_DB.resetSampleData();
+      showToast('Sample data restored', 'success');
+      renderUsers(); renderSystemInfo();
+    });
+    document.getElementById('btn-clear').addEventListener('click', async () => {
+      const ok = await showConfirm('Clear ALL data', '<strong style="color:var(--color-danger);">This cannot be undone.</strong> All initiatives, users, drafts, audit logs, and your session will be erased.', 'Clear All');
+      if (!ok) return;
+      AIC_SEC.audit('DATA_CLEAR_ALL', {}, 'CRITICAL');
+      AIC_SEC.flushAudit();
+      AIC_DB.clearAllData();
+      showToast('All data cleared. Reloading…', 'warning');
+      setTimeout(() => window.location.replace('index.html'), 800);
+    });
+    ['pass-thresh','cond-thresh'].forEach(id => {
+      document.getElementById(id).addEventListener('input', e => {
+        document.getElementById(id === 'pass-thresh' ? 'pass-bubble' : 'cond-bubble').textContent = e.target.value;
+      });
+    });
+
+    // ---- AUDIT ----
+    function renderAudit() {
+      const events = AIC_DB.getAuditLog();
+      const search = document.getElementById('audit-search').value.toLowerCase();
+      const sev = document.getElementById('audit-sev').value;
+      let r = events;
+      if (sev) r = r.filter(e => e.severity === sev);
+      if (search) r = r.filter(e => (e.action || '').toLowerCase().includes(search) || (e.user || '').toLowerCase().includes(search));
+      const tb = document.getElementById('tbody-audit');
+      if (!r.length) { tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-lg">No events match.</td></tr>'; return; }
+      tb.innerHTML = r.slice(0, 200).map(e =>
+        '<tr><td class="text-xs">' + formatDate(e.timestamp, { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) + '</td>' +
+        '<td><span class="badge ' + (e.severity === 'CRITICAL' ? 'badge-danger' : e.severity === 'WARN' ? 'badge-warning' : 'badge-info') + '">' + AIC_SEC.escapeHtml(e.severity || 'INFO') + '</span></td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(e.action) + '</strong></td>' +
+        '<td class="text-xs">' + AIC_SEC.escapeHtml(e.user || '—') + '</td>' +
+        '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(e.url || '') + '</td>' +
+        '<td class="text-xs"><code>' + AIC_SEC.escapeHtml(JSON.stringify(e.data || {})) + '</code></td></tr>'
+      ).join('');
+    }
+    document.getElementById('audit-search').addEventListener('input', renderAudit);
+    document.getElementById('audit-sev').addEventListener('change', renderAudit);
+    document.getElementById('btn-export-audit').addEventListener('click', () => {
+      exportToCsv('aic-audit-' + new Date().toISOString().slice(0,10) + '.csv', AIC_DB.getAuditLog().map(e => ({
+        Timestamp: e.timestamp, Severity: e.severity, Action: e.action, User: e.user, URL: e.url, Data: JSON.stringify(e.data || {})
+      })));
+    });
+    setInterval(() => { if (document.getElementById('tab-audit').classList.contains('active')) renderAudit(); }, 30000);
+
+    // ---- HEALTH ----
+    function renderHealthCards(results) {
+      const cards = [
+        { name:'APIM', icon:'fa-cloud', key:'apim', desc:'Azure API Management gateway' },
+        { name:'Cosmos DB', icon:'fa-database', key:'cosmos', desc:'Investment data store' },
+        { name:'Azure AD', icon:'fa-shield-halved', key:'aad', desc:'Authentication & RBAC' },
+        { name:'App Insights', icon:'fa-chart-line', key:'ai', desc:'Telemetry pipeline' }
+      ];
+      document.getElementById('health-cards').innerHTML = cards.map(c => {
+        const r = (results || {})[c.key] || { status: AIC_CONFIG.features.enableAzureAD ? 'unknown' : 'demo' };
+        const cls = r.status === 'ok' ? 'badge-success' : r.status === 'demo' ? 'badge-info' : r.status === 'error' ? 'badge-danger' : 'badge-neutral';
+        return '<div class="stat-card" style="--accent-color:' + (r.status === 'ok' ? '#10b981' : r.status === 'error' ? '#ef4444' : '#64748b') + '">' +
+          '<div class="text-xs text-muted"><i class="fas ' + c.icon + '"></i> ' + c.name + '</div>' +
+          '<div class="stat-value text-md">' + (r.latencyMs != null ? r.latencyMs + 'ms' : '—') + '</div>' +
+          '<div class="stat-sub">' + c.desc + '</div>' +
+          '<span class="badge ' + cls + ' mt-sm" style="margin-top:8px;">' + (r.status || 'unknown').toUpperCase() + '</span>' +
+          '</div>';
+      }).join('');
+    }
+    document.getElementById('btn-health').addEventListener('click', async () => {
+      const start = Date.now();
+      const out = document.getElementById('health-output');
+      out.textContent = 'Running diagnostics…';
+      const results = {};
+      try { results.apim = await AIC_API.healthCheck(); } catch (e) { results.apim = { status:'error', error: String(e) }; }
+      results.cosmos = AIC_CONFIG.features.enableCosmos ? results.apim : { status:'demo', latencyMs: 1 };
+      results.aad = AIC_CONFIG.features.enableAzureAD ? { status:'ok', latencyMs: 12 } : { status:'demo', latencyMs: 1 };
+      results.ai = AIC_CONFIG.appInsights.connectionString ? { status:'ok', latencyMs: 8 } : { status:'demo', latencyMs: 1 };
+      results.totalMs = Date.now() - start;
+      out.textContent = JSON.stringify(results, null, 2);
+      renderHealthCards(results);
+    });
+
+    renderUsers();
+    renderPerms();
+    renderSystemInfo();
+    renderFlags();
+    renderAudit();
+    renderHealthCards();
+  }
+});
+</script>
+
+</body>
+</html>

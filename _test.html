@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIC Self-Test Runner</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+</head>
+<body>
+
+<div class="page-body" style="margin:0 auto;max-width:900px;">
+  <h1>AIC Portal — Self Test</h1>
+  <p class="text-muted">Runs all assertions automatically. Inspect the table below or open the console.</p>
+  <div class="card mt-md">
+    <div class="flex justify-between items-center mb-md">
+      <div><span id="passes" class="badge badge-success">0 passed</span>
+      <span id="fails" class="badge badge-danger">0 failed</span></div>
+      <button id="rerun" class="btn btn-primary">Re-run tests</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Assertion</th><th>Detail</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+function runTests() {
+  const results = [];
+  function t(name, fn) {
+    try {
+      const detail = fn();
+      results.push({ ok:true, name, detail: detail || 'ok' });
+    } catch (e) {
+      results.push({ ok:false, name, detail: e.message });
+      console.error('[FAIL]', name, e);
+    }
+  }
+  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+  function eq(a, b, msg) { if (a !== b) throw new Error((msg || 'expected ' + b + ' got ' + a)); }
+
+  AIC_DB.resetSampleData();
+
+  t('DB initializes with 5 initiatives', () => {
+    const list = AIC_DB.getInitiatives();
+    eq(list.length, 5, 'got ' + list.length);
+    return list.length + ' initiatives';
+  });
+  t('DB has 7 users across all roles', () => {
+    const users = AIC_DB.getUsers();
+    eq(users.length, 7);
+    const roles = new Set(users.map(u => u.role));
+    assert(roles.has('Platform_Admin'));
+    assert(roles.has('Investment_Committee'));
+    assert(roles.has('Strategy_Reviewer'));
+    assert(roles.has('Initiative_Submitter'));
+    assert(roles.has('Portfolio_Viewer'));
+    return 'all 5 roles present';
+  });
+  t('Authentication: each role has at least one user', () => {
+    ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter','Portfolio_Viewer'].forEach(r => {
+      const u = AIC_DB.getUsers().find(x => x.role === r);
+      assert(u, 'missing user with role ' + r);
+    });
+    return 'all roles populated';
+  });
+  t('Portfolio summary computes correctly', () => {
+    const s = AIC_DB.getPortfolioSummary();
+    assert(s.total === 5);
+    assert(s.totalRequested > 0);
+    return 'total=' + s.total + ' approved=$' + s.totalApproved;
+  });
+  t('Gatekeeper score weighted calc: 76*30 + 84*25 + 71*20 + 88*15 + 74*10 = 79', () => {
+    const dims = {
+      d1:{score:76,weight:30}, d2:{score:84,weight:25}, d3:{score:71,weight:20},
+      d4:{score:88,weight:15}, d5:{score:74,weight:10}
+    };
+    const score = AIC_DB.computeGatekeeperScore(dims);
+    eq(score, 79, 'got ' + score);
+    return 'weighted = ' + score;
+  });
+  t('Initiative CRUD operations', () => {
+    const created = AIC_DB.createInitiative({ title:'Test', domain:'Other', budgetRequested: 100000 });
+    assert(created.id);
+    const fetched = AIC_DB.getInitiative(created.id);
+    eq(fetched.title, 'Test');
+    AIC_DB.updateInitiative(created.id, { title: 'Test 2' });
+    eq(AIC_DB.getInitiative(created.id).title, 'Test 2');
+    AIC_DB.deleteInitiative(created.id);
+    assert(!AIC_DB.getInitiatives().find(i => i.id === created.id));
+    return 'create/read/update/delete OK';
+  });
+  t('Draft save and resume', () => {
+    const d = AIC_DB.saveDraft({ title:'Draft test', step: 3 });
+    assert(d.id);
+    const r = AIC_DB.getDraft(d.id);
+    eq(r.title, 'Draft test');
+    AIC_DB.deleteDraft(d.id);
+    return 'roundtrip OK';
+  });
+  t('Audit log writes', () => {
+    const before = AIC_DB.getAuditLog().length;
+    AIC_DB.addAuditEvent({ action:'TEST_EVENT', data:{}, severity:'INFO' });
+    const after = AIC_DB.getAuditLog().length;
+    assert(after > before);
+    return after + ' events';
+  });
+  t('User CRUD operations', () => {
+    const u = AIC_DB.createUser({ name:'Tester One', email:'t@alshaya.com', role:'Initiative_Submitter' });
+    assert(u.id);
+    AIC_DB.updateUser(u.id, { title:'Test Lead' });
+    eq(AIC_DB.getUserById(u.id).title, 'Test Lead');
+    AIC_DB.deleteUser(u.id);
+    assert(!AIC_DB.getUserById(u.id));
+    return 'CRUD OK';
+  });
+  t('RBAC: Platform_Admin sees everything', () => {
+    assert(AIC_SEC.canAccess({ role:'Platform_Admin' }, ['Initiative_Submitter']));
+    assert(AIC_SEC.canAccess({ role:'Platform_Admin' }, ['Investment_Committee']));
+    assert(AIC_SEC.canAccess({ role:'Platform_Admin' }, ['Platform_Admin']));
+    return 'admin universal access';
+  });
+  t('RBAC: Submitter cannot access admin page', () => {
+    assert(!AIC_SEC.canAccess({ role:'Initiative_Submitter' }, ['Platform_Admin']));
+    return 'denied as expected';
+  });
+  t('Sanitize strips dangerous HTML', () => {
+    const out = AIC_SEC.sanitize('<img src=x onerror=alert(1)><b>ok</b>');
+    assert(!/onerror/.test(out));
+    return 'XSS blocked';
+  });
+  t('CSRF token persists per session', () => {
+    const a = AIC_SEC.getCsrfToken();
+    const b = AIC_SEC.getCsrfToken();
+    eq(a.length, 64);
+    eq(a, b);
+    return 'token=' + a.slice(0, 8) + '…';
+  });
+  t('Rate limit blocks bursts', () => {
+    for (let i = 0; i < 5; i++) AIC_SEC.checkRateLimit('test-rl', 5, 1000);
+    const r = AIC_SEC.checkRateLimit('test-rl', 5, 1000);
+    assert(!r.allowed, 'should block');
+    return 'blocked after 5 calls';
+  });
+  t('Score helpers', () => {
+    eq(scoreLabel(80), 'PASS');
+    eq(scoreLabel(65), 'CONDITIONAL');
+    eq(scoreLabel(50), 'FAIL');
+    eq(scoreLabel(null), 'Pending');
+    return 'PASS/COND/FAIL all correct';
+  });
+  t('Format helpers', () => {
+    assert(formatCurrency(1250000, 'USD', true).indexOf('1.25M') >= 0 || formatCurrency(1250000, 'USD', true).indexOf('1.3M') >= 0);
+    assert(formatPct(12.345, 1) === '12.3%');
+    return 'currency + pct OK';
+  });
+
+  return results;
+}
+
+function render(results) {
+  const tb = document.getElementById('tbody');
+  let pass = 0, fail = 0;
+  tb.innerHTML = results.map(r => {
+    if (r.ok) pass++; else fail++;
+    return '<tr>' +
+      '<td>' + (r.ok ? '<i class="fas fa-circle-check text-success">✓</i>' : '<i class="fas fa-circle-xmark text-danger">✗</i>') + '</td>' +
+      '<td><strong>' + AIC_SEC.escapeHtml(r.name) + '</strong></td>' +
+      '<td class="text-xs ' + (r.ok ? 'text-muted' : 'text-danger') + '">' + AIC_SEC.escapeHtml(r.detail) + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('passes').textContent = pass + ' passed';
+  document.getElementById('fails').textContent = fail + ' failed';
+  console.log('[AIC Tests]', pass + '/' + (pass+fail), 'passed');
+}
+
+document.getElementById('rerun').addEventListener('click', () => render(runTests()));
+render(runTests());
+</script>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Measurement &amp; Scoring Guide — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-mark">AIC</div><div><div>Investment Council</div><div class="logo-sub">v2.1.0</div></div></div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item" data-nav-page="strategy-dashboard.html" data-min-role="Strategy_Reviewer" href="strategy-dashboard.html"><i class="fas fa-clipboard-check"></i> Gatekeeper</a>
+  <a class="nav-item" data-nav-page="cxo-dashboard.html" data-min-role="Investment_Committee" href="cxo-dashboard.html"><i class="fas fa-chart-line"></i> Council</a>
+  <div class="nav-section-label">Resources</div>
+  <a class="nav-item nav-active" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <a class="nav-item" data-nav-page="admin.html" data-min-role="Platform_Admin" href="admin.html"><i class="fas fa-shield-halved"></i> Admin</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar"><h1>Measurement &amp; Scoring Guide</h1></header>
+  <main class="page-body">
+
+    <div class="grid" style="grid-template-columns:240px 1fr;gap:24px;">
+      <aside class="card" style="position:sticky;top:80px;align-self:start;">
+        <div class="text-xs text-muted mb-md" style="text-transform:uppercase;letter-spacing:.05em;">Sections</div>
+        <ul style="list-style:none;padding:0;margin:0;font-size:13px;">
+          <li><a href="#brief">Writing a strong brief</a></li>
+          <li><a href="#dimensions">5-dimension model</a></li>
+          <li><a href="#sharks">6-shark panel</a></li>
+          <li><a href="#bear">Bear case narrative</a></li>
+          <li><a href="#measurement">Measurement plan</a></li>
+          <li><a href="#stages">Stage gate criteria</a></li>
+          <li><a href="#policy">Financial policy</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </aside>
+
+      <article>
+        <section id="brief" class="card mb-md">
+          <h2>Writing a strong investment brief</h2>
+          <p class="text-muted">A great brief reads like a one-page board paper. It is concrete, quantified, and falsifiable. Reviewers should be able to disagree with you on the merits within 5 minutes.</p>
+          <ul>
+            <li><strong>Problem first, solution second.</strong> Open with the customer or commercial pain in numbers — never with the technology.</li>
+            <li><strong>Evidence over opinion.</strong> Cite POS data, NPS surveys, time-and-motion studies, or comparable deployments.</li>
+            <li><strong>One primary metric.</strong> If you cannot name the single number that will move, you do not yet have a measurable initiative.</li>
+            <li><strong>Be honest about risk.</strong> The bear case is your friend — it earns trust with the Committee.</li>
+            <li><strong>Stage your ask.</strong> Request Discovery first, not full rollout funding.</li>
+          </ul>
+        </section>
+
+        <section id="dimensions" class="card mb-md">
+          <h2>The 5-dimension scoring model</h2>
+          <p class="text-muted">Strategy Reviewers (Gatekeepers) score every initiative on 5 weighted dimensions. The score determines whether it reaches the Investment Committee.</p>
+          <table>
+            <thead><tr><th>Dimension</th><th>Weight</th><th>What "great" looks like</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Financial Return Credibility</strong></td><td>30%</td><td>Quantified annual benefit with named source. Payback ≤ 36 months. Sensitivity analysis (base/bull/bear) included.</td></tr>
+              <tr><td><strong>Customer &amp; Market Validity</strong></td><td>25%</td><td>Tier 1 evidence (POS, transactional, surveyed). Comparable deployments cited. NPS / satisfaction baseline.</td></tr>
+              <tr><td><strong>Technical &amp; Delivery Credibility</strong></td><td>20%</td><td>Architecture reviewed. Vendor / build path chosen with rationale. Integration map. Discovery sprint scoped.</td></tr>
+              <tr><td><strong>Strategic Alignment &amp; Optionality</strong></td><td>15%</td><td>Maps directly to Board-level priority. Creates capability re-usable by other brands or markets.</td></tr>
+              <tr><td><strong>Operational &amp; Risk Credibility</strong></td><td>10%</td><td>Store/ops sign-off. Regulatory (PDPL/DIFC) covered. Brand-partner approvals confirmed in writing.</td></tr>
+            </tbody>
+          </table>
+          <p class="mt-md"><strong>Thresholds:</strong>
+            <span class="badge badge-success">PASS ≥ 75</span>
+            <span class="badge badge-warning">CONDITIONAL 60–74</span>
+            <span class="badge badge-danger">FAIL &lt; 60</span>
+          </p>
+        </section>
+
+        <section id="sharks" class="card mb-md">
+          <h2>The 6-shark Investment Committee panel</h2>
+          <p class="text-muted">The Committee evaluates from 6 perspectives plus a Red Team risk modifier. Every initiative is stress-tested by all 7 voices.</p>
+          <ul>
+            <li><strong>🔪 Margin Surgeon</strong> — owns payback, EBITDA isolation, double-counting risk.</li>
+            <li><strong>👤 Customer Advocate</strong> — owns the demand evidence and customer pain.</li>
+            <li><strong>💻 Tech Realist</strong> — owns architecture, vendor risk, integration complexity.</li>
+            <li><strong>📊 Commercial Strategist</strong> — owns Board alignment and competitive optionality.</li>
+            <li><strong>🏪 Operator</strong> — owns store readiness, change management, regulatory sign-off.</li>
+            <li><strong>📏 Measurement Architect</strong> — owns the primary metric, attribution, and accountable owner.</li>
+            <li><strong>🎯 Red Team</strong> — applies a risk modifier (typically -3 to -10) for live execution risks.</li>
+          </ul>
+        </section>
+
+        <section id="bear" class="card mb-md">
+          <h2>Writing a strong bear case narrative</h2>
+          <p class="text-muted">A bear case is a forward-dated, falsifiable story of failure. It is the single most powerful trust-building artefact in your brief.</p>
+          <p>Format: <em>"It is [18 months from now]. The initiative consumed $X and delivered only Y% of the target. The root cause was…"</em></p>
+          <p>Strong bear cases name the specific dependency that failed (vendor API, brand approval, integration scope, adoption rate) — not vague risks like "scope creep".</p>
+        </section>
+
+        <section id="measurement" class="card mb-md">
+          <h2>Measurement plan standards</h2>
+          <ul>
+            <li><strong>Primary metric:</strong> exactly one. Named, with baseline and target values.</li>
+            <li><strong>Leading indicators:</strong> what moves first to confirm the initiative is taking hold within 30–60 days.</li>
+            <li><strong>Attribution method:</strong> A/B, pre/post test-control, difference-in-differences. State the design.</li>
+            <li><strong>Accountable owner:</strong> a named individual (not a team or role).</li>
+            <li><strong>Review cadence:</strong> formal reviews at minimum quarterly with named dates.</li>
+          </ul>
+        </section>
+
+        <section id="stages" class="card mb-md">
+          <h2>Stage gate exit criteria</h2>
+          <p class="text-muted">Each stage releases ~4% / 30% / 40% / 26% of the total approved budget. Capital is locked behind exit criteria — explicit, binary, and observable.</p>
+          <table>
+            <thead><tr><th>Stage</th><th>Budget split</th><th>Typical exit criteria</th></tr></thead>
+            <tbody>
+              <tr><td>Stage 0 — Discovery</td><td>4%</td><td>Architecture reviewed; vendor selected or build path approved; integration map signed.</td></tr>
+              <tr><td>Stage 1 — Alpha/MVP</td><td>30%</td><td>MVP live; primary metric instrumented; leading indicators trending positive.</td></tr>
+              <tr><td>Stage 2 — Scaled Pilot</td><td>40%</td><td>Pilot meets ≥80% of target; ops change management complete; PDPL sign-off.</td></tr>
+              <tr><td>Stage 3 — Full Rollout</td><td>26%</td><td>Pilot exceeds target; full ops readiness; benefits actuals captured.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="policy" class="card mb-md">
+          <h2>Financial policy</h2>
+          <ul>
+            <li><strong>Maximum payback:</strong> 36 months. Exceptions require explicit Council vote.</li>
+            <li><strong>Quick Win:</strong> ≤ $200K total budget, ≤ 12-month payback.</li>
+            <li><strong>Discovery cap:</strong> $75K maximum for Stage 0 exploration.</li>
+            <li><strong>Stage funding:</strong> 4 / 30 / 40 / 26 percent split, fixed by policy.</li>
+          </ul>
+        </section>
+
+        <section id="faq" class="card mb-md">
+          <h2>FAQ</h2>
+          <p><strong>Q: My initiative crosses brands — who is the sponsor?</strong><br/>A: The brand whose P&amp;L benefits most. Note revenue and benefit splits in the Franchise Note.</p>
+          <p><strong>Q: How long does Gatekeeper review take?</strong><br/>A: 5 working days SLA from submission.</p>
+          <p><strong>Q: Can I edit a submitted initiative?</strong><br/>A: Drafts only. Once submitted, ask the Strategy Reviewer to RETURN it for revision.</p>
+          <p><strong>Q: Where does the Cosmos master key live?</strong><br/>A: Azure Key Vault. The browser never sees it. APIM injects the key at request time.</p>
+        </section>
+      </article>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({ allowedRoles: ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Portfolio_Viewer','Platform_Admin'] });
+</script>
+
+</body>
+</html>

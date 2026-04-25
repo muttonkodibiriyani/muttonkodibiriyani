@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Submit Initiative — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-mark">AIC</div><div><div>Investment Council</div><div class="logo-sub">v2.1.0</div></div></div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item nav-active" data-nav-page="submit-initiative.html" href="submit-initiative.html"><i class="fas fa-plus"></i> New Initiative</a>
+  <div class="nav-section-label">Resources</div>
+  <a class="nav-item" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar">
+    <h1>Submit New Initiative</h1>
+    <div class="top-actions">
+      <span id="autosave" class="text-xs text-muted"></span>
+      <button id="btn-save-draft" class="btn btn-secondary"><i class="fas fa-floppy-disk"></i> Save Draft</button>
+    </div>
+  </header>
+  <main class="page-body">
+    <div id="resume-banner" class="card mb-md" style="display:none;border-left:4px solid var(--color-warning);">
+      <div class="flex justify-between items-center gap-md">
+        <div>
+          <strong>Draft in progress —</strong>
+          <span class="text-muted text-sm" id="resume-meta"></span>
+        </div>
+        <div class="flex gap-sm">
+          <button id="btn-resume" class="btn btn-primary btn-sm"><i class="fas fa-play"></i> Resume</button>
+          <button id="btn-discard" class="btn btn-ghost btn-sm">Start fresh</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-progress" id="wiz-progress"></div>
+
+    <div class="card">
+      <div id="step-container"></div>
+
+      <div class="flex justify-between items-center mt-lg" style="border-top:1px solid var(--color-border);padding-top:16px;">
+        <button id="btn-back" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
+        <div class="flex gap-sm">
+          <button id="btn-save-draft2" class="btn btn-ghost"><i class="fas fa-floppy-disk"></i> Save Draft</button>
+          <button id="btn-next" class="btn btn-primary">Next <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({
+  allowedRoles: ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Platform_Admin'],
+  onReady: async function (user) {
+
+    const STEPS = [
+      { id:1, label:'Basics' },
+      { id:2, label:'Problem' },
+      { id:3, label:'Solution' },
+      { id:4, label:'Financials' },
+      { id:5, label:'Measurement' },
+      { id:6, label:'Risk' },
+      { id:7, label:'Stage Gates' },
+      { id:8, label:'Review' }
+    ];
+
+    let state = {
+      id: null,
+      submittedById: user.id,
+      submittedBy: user.name,
+      step: 1,
+      title: '', domain: '', priority: 'Strategic',
+      sponsor: '', sponsorTitle: '',
+      brands: [], country: '', startDate: '',
+      problemStatement: '', customerEvidence: '',
+      costOfInaction: '', sizeOfPrize: '',
+      description: '', buyVsBuild: 'Build', buyVsBuildJust: '',
+      dependencies: '', timeline: '',
+      budgetRequested: 0, stage0:0, stage1:0, stage2:0, stage3:0,
+      annualBenefit: 0, payback: 24, npv5: 0, irr: 0,
+      financialCase: '',
+      primaryMetric: '', primaryBaseline: '', primaryTarget: '',
+      secondaryMetrics: ['','',''],
+      leadingIndicators: '', dataSource: '', attributionMethod: '',
+      accountableOwner: '', firstReviewDate: '',
+      risks: [
+        { risk:'', likelihood:3, impact:3, mitigation:'' },
+        { risk:'', likelihood:3, impact:3, mitigation:'' },
+        { risk:'', likelihood:3, impact:3, mitigation:'' }
+      ],
+      bearCase: '', franchiseNote: '',
+      stageGates: [
+        { stage:'Stage 0: Discovery', criteria:['','',''], targetDate:'' },
+        { stage:'Stage 1: Alpha/MVP', criteria:['','',''], targetDate:'' },
+        { stage:'Stage 2: Scaled Pilot', criteria:['','',''], targetDate:'' },
+        { stage:'Stage 3: Full Rollout', criteria:['','',''], targetDate:'' }
+      ],
+      acknowledged: false
+    };
+
+    // resume detection
+    const draftId = getParam('draft');
+    const existing = draftId ? AIC_DB.getDraft(draftId) : (AIC_DB.getDrafts(user.id).filter(d => !d.submitted).pop());
+    if (existing && !draftId) {
+      const banner = document.getElementById('resume-banner');
+      banner.style.display = 'block';
+      document.getElementById('resume-meta').textContent = (existing.title || 'Untitled') + ' — last saved ' + timeAgo(existing.savedAt);
+      document.getElementById('btn-resume').addEventListener('click', () => { state = Object.assign(state, existing); render(); });
+      document.getElementById('btn-discard').addEventListener('click', () => { banner.style.display = 'none'; });
+    } else if (draftId && existing) {
+      state = Object.assign(state, existing);
+    }
+
+    function renderProgress() {
+      document.getElementById('wiz-progress').innerHTML = STEPS.map(s => {
+        const cls = s.id < state.step ? 'done' : (s.id === state.step ? 'active' : '');
+        return '<div class="wizard-step ' + cls + '"><div class="dot">' + (s.id < state.step ? '✓' : s.id) + '</div><div class="label">' + AIC_SEC.escapeHtml(s.label) + '</div></div>';
+      }).join('');
+    }
+
+    function autosave() {
+      const draft = Object.assign({}, state, { id: state.id || ('DRAFT-' + Date.now()) });
+      state.id = draft.id;
+      AIC_DB.saveDraft(draft);
+      document.getElementById('autosave').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
+    }
+    const debouncedAutosave = debounce(autosave, 800);
+
+    function field(label, name, type, opts) {
+      opts = opts || {};
+      const id = 'f-' + name;
+      const v = state[name] != null ? state[name] : '';
+      let html = '<div class="form-group"><label class="form-label" for="' + id + '">' + AIC_SEC.escapeHtml(label) + (opts.required ? ' <span class="text-danger">*</span>' : '') + '</label>';
+      if (type === 'textarea') {
+        html += '<textarea id="' + id + '" name="' + name + '" placeholder="' + AIC_SEC.encodeAttr(opts.placeholder || '') + '">' + AIC_SEC.escapeHtml(v) + '</textarea>';
+      } else if (type === 'select') {
+        html += '<select id="' + id + '" name="' + name + '">' + opts.options.map(o => '<option value="' + AIC_SEC.encodeAttr(o) + '" ' + (v === o ? 'selected' : '') + '>' + AIC_SEC.escapeHtml(o) + '</option>').join('') + '</select>';
+      } else {
+        html += '<input id="' + id + '" name="' + name + '" type="' + type + '" value="' + AIC_SEC.encodeAttr(v) + '" placeholder="' + AIC_SEC.encodeAttr(opts.placeholder || '') + '" ' + (opts.min!=null?'min="'+opts.min+'"':'') + ' ' + (opts.max!=null?'max="'+opts.max+'"':'') + ' />';
+      }
+      if (opts.help) html += '<small class="form-help">' + AIC_SEC.escapeHtml(opts.help) + '</small>';
+      html += '</div>';
+      return html;
+    }
+
+    function bindFields(scope) {
+      scope.querySelectorAll('input,textarea,select').forEach(el => {
+        const name = el.getAttribute('name');
+        if (!name) return;
+        el.addEventListener('input', () => {
+          state[name] = el.type === 'number' ? Number(el.value) : el.value;
+          if (name === 'budgetRequested') autoStageBudgets();
+          debouncedAutosave();
+        });
+      });
+    }
+
+    function autoStageBudgets() {
+      const total = Number(state.budgetRequested) || 0;
+      const f = AIC_CONFIG.financial.stageFunding;
+      state.stage0 = Math.round(total * f.stage0Pct);
+      state.stage1 = Math.round(total * f.stage1Pct);
+      state.stage2 = Math.round(total * f.stage2Pct);
+      state.stage3 = Math.round(total * f.stage3Pct);
+      ['stage0','stage1','stage2','stage3'].forEach(k => {
+        const el = document.querySelector('[name="' + k + '"]');
+        if (el) el.value = state[k];
+      });
+    }
+
+    function renderStep() {
+      const c = document.getElementById('step-container');
+      const step = state.step;
+      let html = '';
+      if (step === 1) {
+        html = '<h2 style="margin-top:0;">Step 1 — Basic Information</h2>';
+        html += field('Initiative Title', 'title', 'text', { required:true, placeholder:'e.g. AI-Powered Inventory Optimisation — Starbucks GCC' });
+        html += '<div class="form-row">';
+        html += field('Domain', 'domain', 'select', { required:true, options:['','Retail Supply Chain','Ecommerce','In-Store Technology','Customer Loyalty','Pricing & Revenue Management','Digital Operations','HR & People','Other'] });
+        html += field('Priority', 'priority', 'select', { options:['Strategic','Quick Win','Efficiency'] });
+        html += '</div>';
+        html += '<div class="form-row">';
+        html += field('Sponsor (Name & Title)', 'sponsor', 'text', { placeholder:'e.g. Faisal Al-Tamimi (CTO)' });
+        html += field('Target Markets / Countries', 'country', 'text', { placeholder:'UAE, KSA, Kuwait' });
+        html += '</div>';
+        html += '<div class="form-row">';
+        html += field('Target Brands (comma-separated)', 'brands', 'text', { placeholder:'Starbucks, H&M, Mothercare' });
+        html += field('Expected Start Date', 'startDate', 'date');
+        html += '</div>';
+      } else if (step === 2) {
+        html = '<h2 style="margin-top:0;">Step 2 — Problem Statement</h2>';
+        html += field('Problem Description', 'problemStatement', 'textarea', { required:true, placeholder:'Describe the problem with hard numbers (100-2000 chars)…', help:'100-2000 characters' });
+        html += field('Customer / Market Evidence', 'customerEvidence', 'textarea', { placeholder:'Quantitative or qualitative evidence — POS data, NPS, surveys, observed behaviour…' });
+        html += '<div class="form-row">';
+        html += field('Cost of Inaction (USD)', 'costOfInaction', 'number', { placeholder:'Annual ongoing cost of doing nothing' });
+        html += field('Size of Prize (USD)', 'sizeOfPrize', 'number', { placeholder:'Realistic upside potential' });
+        html += '</div>';
+      } else if (step === 3) {
+        html = '<h2 style="margin-top:0;">Step 3 — Proposed Solution</h2>';
+        html += field('Solution Description', 'description', 'textarea', { required:true });
+        html += '<div class="form-row">';
+        html += field('Buy vs Build', 'buyVsBuild', 'select', { options:['Build','Buy','Hybrid'] });
+        html += field('Buy vs Build Justification', 'buyVsBuildJust', 'text');
+        html += '</div>';
+        html += field('Key Dependencies', 'dependencies', 'textarea', { placeholder:'External APIs, vendor contracts, brand approvals, regulatory…' });
+        html += field('High-Level Timeline', 'timeline', 'textarea', { placeholder:'Discovery → MVP → Pilot → Rollout milestone dates' });
+      } else if (step === 4) {
+        html = '<h2 style="margin-top:0;">Step 4 — Financial Case</h2>';
+        html += field('Total Budget Requested (USD)', 'budgetRequested', 'number', { required:true, min:0 });
+        html += '<div class="form-row" style="grid-template-columns:repeat(4,1fr);">';
+        html += field('Stage 0 (4%)', 'stage0', 'number');
+        html += field('Stage 1 (30%)', 'stage1', 'number');
+        html += field('Stage 2 (40%)', 'stage2', 'number');
+        html += field('Stage 3 (26%)', 'stage3', 'number');
+        html += '</div>';
+        html += '<div class="form-row">';
+        html += field('Expected Annual Benefit (USD)', 'annualBenefit', 'number');
+        html += field('Payback Period (months)', 'payback', 'number', { min:1, max:120, help:'Policy: ≤ 36 months' });
+        html += '</div>';
+        html += '<div class="form-row">';
+        html += field('NPV @ 5 years (USD)', 'npv5', 'number');
+        html += field('IRR (%)', 'irr', 'number', { min:0, max:100 });
+        html += '</div>';
+        html += field('Financial Case Narrative', 'financialCase', 'textarea');
+        html += '<div id="payback-warn"></div>';
+      } else if (step === 5) {
+        html = '<h2 style="margin-top:0;">Step 5 — Measurement Plan</h2>';
+        html += '<div class="form-row-3">';
+        html += field('Primary KPI', 'primaryMetric', 'text', { required:true });
+        html += field('Baseline', 'primaryBaseline', 'text');
+        html += field('Target', 'primaryTarget', 'text');
+        html += '</div>';
+        html += '<div class="form-row-3">';
+        html += field('Secondary KPI #1', 'secondary1', 'text');
+        html += field('Secondary KPI #2', 'secondary2', 'text');
+        html += field('Secondary KPI #3', 'secondary3', 'text');
+        html += '</div>';
+        html += field('Leading Indicators', 'leadingIndicators', 'textarea', { placeholder:'What will move first to confirm the change is taking hold?' });
+        html += '<div class="form-row">';
+        html += field('Data Source', 'dataSource', 'text', { placeholder:'e.g. SAP EWM + Oracle RMS' });
+        html += field('Attribution Method', 'attributionMethod', 'text', { placeholder:'Pre/post test-control, A/B, DiD, …' });
+        html += '</div>';
+        html += '<div class="form-row">';
+        html += field('Accountable Owner', 'accountableOwner', 'text', { required:true });
+        html += field('First Review Date', 'firstReviewDate', 'date');
+        html += '</div>';
+      } else if (step === 6) {
+        html = '<h2 style="margin-top:0;">Step 6 — Risk &amp; Bear Case</h2>';
+        for (let n = 0; n < 3; n++) {
+          const r = state.risks[n] || { risk:'', likelihood:3, impact:3, mitigation:'' };
+          html += '<div class="card mb-md" style="background:var(--color-surface2);"><div class="text-sm font-semibold mb-sm">Risk #' + (n+1) + '</div>';
+          html += '<input type="text" data-risk="' + n + '" data-key="risk" placeholder="Risk description" value="' + AIC_SEC.encodeAttr(r.risk) + '" />';
+          html += '<div class="form-row mt-md">';
+          html += '<label class="form-label">Likelihood (1-5) <input type="number" min="1" max="5" data-risk="' + n + '" data-key="likelihood" value="' + r.likelihood + '" /></label>';
+          html += '<label class="form-label">Impact (1-5) <input type="number" min="1" max="5" data-risk="' + n + '" data-key="impact" value="' + r.impact + '" /></label>';
+          html += '</div>';
+          html += '<input type="text" class="mt-sm" data-risk="' + n + '" data-key="mitigation" placeholder="Mitigation" value="' + AIC_SEC.encodeAttr(r.mitigation) + '" />';
+          html += '</div>';
+        }
+        html += field('Bear Case Narrative', 'bearCase', 'textarea', { required:true, placeholder:'It is [18 months from now]. The initiative consumed $X and delivered only Y% of target. Root cause: …' });
+        html += field('Franchise Note (optional)', 'franchiseNote', 'textarea', { placeholder:'How is value split between Alshaya and brand partner?' });
+      } else if (step === 7) {
+        html = '<h2 style="margin-top:0;">Step 7 — Stage Gate Plan</h2>';
+        for (let s = 0; s < 4; s++) {
+          const sg = state.stageGates[s];
+          html += '<div class="card mb-md" style="background:var(--color-surface2);">';
+          html += '<div class="flex justify-between items-center mb-md"><strong>' + sg.stage + '</strong>';
+          html += '<input type="date" data-sg="' + s + '" data-key="targetDate" value="' + AIC_SEC.encodeAttr(sg.targetDate) + '" style="max-width:180px;" /></div>';
+          for (let c = 0; c < 3; c++) {
+            html += '<input type="text" class="mt-sm" data-sg="' + s + '" data-crit="' + c + '" placeholder="Exit criterion #' + (c+1) + '" value="' + AIC_SEC.encodeAttr(sg.criteria[c] || '') + '" />';
+          }
+          html += '</div>';
+        }
+      } else if (step === 8) {
+        html = '<h2 style="margin-top:0;">Step 8 — Review &amp; Submit</h2>';
+        html += renderReviewSummary();
+        html += '<div class="form-group mt-md">';
+        html += '<label class="form-label" style="display:flex;align-items:center;gap:10px;">';
+        html += '<input type="checkbox" id="ack" ' + (state.acknowledged ? 'checked' : '') + ' />';
+        html += '<span>I confirm this submission contains <strong>INTERNAL-CONFIDENTIAL</strong> data only, with no PII outside policy. I have authority to submit on behalf of my business unit.</span>';
+        html += '</label></div>';
+      }
+      c.innerHTML = html;
+      bindFields(c);
+
+      if (step === 6) {
+        c.querySelectorAll('[data-risk]').forEach(el => el.addEventListener('input', () => {
+          const idx = Number(el.getAttribute('data-risk'));
+          const key = el.getAttribute('data-key');
+          state.risks[idx][key] = key === 'likelihood' || key === 'impact' ? Number(el.value) : el.value;
+          debouncedAutosave();
+        }));
+      }
+      if (step === 7) {
+        c.querySelectorAll('[data-sg]').forEach(el => el.addEventListener('input', () => {
+          const idx = Number(el.getAttribute('data-sg'));
+          if (el.hasAttribute('data-crit')) state.stageGates[idx].criteria[Number(el.getAttribute('data-crit'))] = el.value;
+          else state.stageGates[idx][el.getAttribute('data-key')] = el.value;
+          debouncedAutosave();
+        }));
+      }
+      if (step === 8) {
+        c.querySelector('#ack').addEventListener('change', e => state.acknowledged = e.target.checked);
+      }
+      if (step === 4) {
+        const w = c.querySelector('#payback-warn');
+        if (w) {
+          w.innerHTML = state.payback > AIC_CONFIG.financial.maxPaybackMonths
+            ? '<div class="card" style="border-left:4px solid var(--color-warning);"><i class="fas fa-triangle-exclamation text-warning"></i> Payback exceeds policy maximum of ' + AIC_CONFIG.financial.maxPaybackMonths + ' months. Council will require a strategic exception.</div>'
+            : '';
+        }
+      }
+
+      document.getElementById('btn-back').style.visibility = state.step === 1 ? 'hidden' : 'visible';
+      document.getElementById('btn-next').innerHTML = state.step === STEPS.length
+        ? '<i class="fas fa-paper-plane"></i> Submit Initiative'
+        : 'Next <i class="fas fa-arrow-right"></i>';
+    }
+
+    function renderReviewSummary() {
+      const sec = (label, val) => '<div class="text-sm"><span class="text-muted">' + label + ':</span> <strong>' + AIC_SEC.escapeHtml(val || '—') + '</strong></div>';
+      return '<div class="grid grid-2">' +
+        '<div class="card" style="background:var(--color-surface2);">' +
+          '<h4>Basics</h4>' +
+          sec('Title', state.title) + sec('Domain', state.domain) + sec('Priority', state.priority) +
+          sec('Sponsor', state.sponsor) + sec('Markets', state.country) +
+        '</div>' +
+        '<div class="card" style="background:var(--color-surface2);">' +
+          '<h4>Financial</h4>' +
+          sec('Budget Requested', formatCurrency(state.budgetRequested)) +
+          sec('Annual Benefit', formatCurrency(state.annualBenefit)) +
+          sec('Payback', state.payback + ' months') +
+          sec('NPV @ 5y', formatCurrency(state.npv5)) +
+          sec('IRR', state.irr + '%') +
+        '</div>' +
+        '<div class="card" style="background:var(--color-surface2);grid-column:1/-1;">' +
+          '<h4>Problem</h4><div class="text-sm text-muted">' + AIC_SEC.escapeHtml(state.problemStatement || '—') + '</div>' +
+        '</div>' +
+        '<div class="card" style="background:var(--color-surface2);grid-column:1/-1;">' +
+          '<h4>Bear Case</h4><div class="text-sm text-muted">' + AIC_SEC.escapeHtml(state.bearCase || '—') + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function validateStep() {
+      switch (state.step) {
+        case 1:
+          if (!state.title.trim() || !state.domain) { showToast('Title and domain are required', 'error'); return false; } break;
+        case 2:
+          if (!state.problemStatement || state.problemStatement.length < 100) { showToast('Problem statement min 100 characters', 'error'); return false; } break;
+        case 3:
+          if (!state.description.trim()) { showToast('Solution description required', 'error'); return false; } break;
+        case 4:
+          if (!state.budgetRequested || state.budgetRequested <= 0) { showToast('Budget requested must be > 0', 'error'); return false; } break;
+        case 5:
+          if (!state.primaryMetric || !state.accountableOwner) { showToast('Primary metric and owner required', 'error'); return false; } break;
+        case 6:
+          if (!state.bearCase || state.bearCase.length < 50) { showToast('Bear case narrative required (≥50 chars)', 'error'); return false; } break;
+        case 8:
+          if (!state.acknowledged) { showToast('Please acknowledge data classification', 'error'); return false; } break;
+      }
+      return true;
+    }
+
+    function next() {
+      if (!validateStep()) return;
+      if (state.step < STEPS.length) {
+        state.step++;
+        autosave();
+        render();
+      } else {
+        submitInitiative();
+      }
+    }
+    function back() {
+      if (state.step > 1) { state.step--; render(); }
+    }
+
+    function submitInitiative() {
+      const rl = AIC_SEC.checkRateLimit('initiative-submit', 3, 60000);
+      if (!rl.allowed) { showToast('Submitting too quickly. Please wait.', 'warning'); return; }
+
+      const dims = {};
+      const initiative = {
+        title: state.title,
+        domain: state.domain,
+        status: 'Submitted',
+        stage: 'Gatekeeper Review',
+        sponsor: state.sponsor,
+        submittedBy: user.name,
+        submittedById: user.id,
+        country: state.country,
+        brands: state.brands ? String(state.brands).split(',').map(s => s.trim()).filter(Boolean) : [],
+        priority: state.priority,
+        description: state.description,
+        problemStatement: state.problemStatement,
+        customerEvidence: state.customerEvidence,
+        proposedSolution: state.description,
+        financialCase: state.financialCase,
+        budgetRequested: Number(state.budgetRequested) || 0,
+        budgetApproved: 0,
+        budgetSpent: 0,
+        gatekeeperScore: null,
+        councilScore: null,
+        decision: 'Pending',
+        confidenceLevel: 'Medium',
+        bearCase: state.bearCase,
+        franchiseNote: state.franchiseNote,
+        measurementPlan: {
+          primaryMetric: state.primaryMetric,
+          baselineValue: state.primaryBaseline,
+          targetValue: state.primaryTarget,
+          secondaryMetrics: [state.secondary1, state.secondary2, state.secondary3].filter(Boolean),
+          leadingIndicators: state.leadingIndicators,
+          dataSource: state.dataSource,
+          attributionMethod: state.attributionMethod,
+          accountableOwner: state.accountableOwner,
+          reviewDates: state.firstReviewDate
+        },
+        stageGates: state.stageGates.map((g, idx) => ({
+          stage: g.stage,
+          budget: idx === 0 ? state.stage0 : idx === 1 ? state.stage1 : idx === 2 ? state.stage2 : state.stage3,
+          spent: 0,
+          status: idx === 0 ? 'Pending' : 'Locked',
+          date: g.targetDate,
+          exitCriteria: g.criteria.filter(Boolean)
+        })),
+        risks: state.risks.filter(r => r.risk),
+        benefitsActuals: [],
+        tags: [state.priority, state.domain].filter(Boolean),
+        attachments: [],
+        dimensions: {},
+        sharkVerdicts: []
+      };
+
+      const created = AIC_DB.createInitiative(initiative);
+      if (state.id) AIC_DB.deleteDraft(state.id);
+      AIC_SEC.audit('INITIATIVE_SUBMITTED', { id: created.id, title: created.title }, 'INFO');
+      AIC_SEC.flushAudit();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = '<div class="modal" style="max-width:480px;"><div class="modal-header"><h3 class="modal-title">Submitted</h3></div>' +
+        '<div class="modal-body text-center"><div style="font-size:48px;color:var(--color-success);"><i class="fas fa-circle-check"></i></div>' +
+        '<h4 class="mt-md">Initiative ' + AIC_SEC.escapeHtml(created.id) + ' submitted</h4>' +
+        '<p class="text-muted">Strategy Reviewers will be notified. You can track progress on your dashboard.</p></div>' +
+        '<div class="modal-footer"><a href="initiator-dashboard.html" class="btn btn-primary">Go to Dashboard</a></div></div>';
+      document.body.appendChild(overlay);
+    }
+
+    document.getElementById('btn-next').addEventListener('click', next);
+    document.getElementById('btn-back').addEventListener('click', back);
+    document.getElementById('btn-save-draft').addEventListener('click', () => { autosave(); showToast('Draft saved', 'success'); });
+    document.getElementById('btn-save-draft2').addEventListener('click', () => { autosave(); showToast('Draft saved', 'success'); });
+
+    function render() { renderProgress(); renderStep(); }
+    render();
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Initiative Detail — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="logo-mark">AIC</div><div><div>Investment Council</div><div class="logo-sub">v2.1.0</div></div></div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item" data-nav-page="strategy-dashboard.html" data-min-role="Strategy_Reviewer" href="strategy-dashboard.html"><i class="fas fa-clipboard-check"></i> Gatekeeper</a>
+  <a class="nav-item" data-nav-page="cxo-dashboard.html" data-min-role="Investment_Committee" href="cxo-dashboard.html"><i class="fas fa-chart-line"></i> Council</a>
+  <div class="nav-section-label">Resources</div>
+  <a class="nav-item" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <a class="nav-item" data-nav-page="admin.html" data-min-role="Platform_Admin" href="admin.html"><i class="fas fa-shield-halved"></i> Admin</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar">
+    <h1 id="title">Initiative</h1>
+    <div class="top-actions">
+      <a href="javascript:history.back()" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+  </header>
+  <main class="page-body">
+
+    <div class="card mb-md">
+      <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="text-xs text-muted" id="hd-id"></div>
+          <h2 style="margin:4px 0;" id="hd-title"></h2>
+          <div class="flex gap-sm" style="flex-wrap:wrap;" id="hd-badges"></div>
+        </div>
+        <div id="hd-rings" class="flex gap-md items-center"></div>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="sharks">Shark Verdicts</button>
+      <button class="tab" data-tab="scorecard">Scorecard</button>
+      <button class="tab" data-tab="bear">Bear Case</button>
+      <button class="tab" data-tab="measure">Measurement</button>
+      <button class="tab" data-tab="gates">Stage Gates</button>
+      <button class="tab" data-tab="entry">Score Entry</button>
+    </div>
+
+    <section id="tab-overview" class="tab-panel active"></section>
+    <section id="tab-sharks" class="tab-panel"></section>
+    <section id="tab-scorecard" class="tab-panel"></section>
+    <section id="tab-bear" class="tab-panel"></section>
+    <section id="tab-measure" class="tab-panel"></section>
+    <section id="tab-gates" class="tab-panel"></section>
+    <section id="tab-entry" class="tab-panel"></section>
+
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({
+  allowedRoles: ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Portfolio_Viewer','Platform_Admin'],
+  onReady: async function (user) {
+    const id = getParam('id');
+    if (!id) { showToast('No initiative specified', 'error'); window.location.href = 'initiator-dashboard.html'; return; }
+    let init = AIC_DB.getInitiative(id);
+    if (!init) { showToast('Initiative not found', 'error'); window.location.href = 'initiator-dashboard.html'; return; }
+
+    const SH = AIC_SEC.escapeHtml;
+    document.getElementById('title').textContent = init.id;
+
+    function renderHeader() {
+      document.getElementById('hd-id').textContent = init.id + ' · Last updated ' + timeAgo(init.lastUpdated);
+      document.getElementById('hd-title').textContent = init.title;
+      document.getElementById('hd-badges').innerHTML =
+        '<span class="badge ' + statusClass(init.status) + '">' + SH(init.status) + '</span>' +
+        '<span class="badge badge-info">' + SH(init.stage) + '</span>' +
+        '<span class="badge ' + decisionClass(init.decision) + '">' + SH(init.decision || 'Pending') + '</span>' +
+        '<span class="chip"><i class="fas fa-tag"></i> ' + SH(init.domain) + '</span>' +
+        '<span class="chip"><i class="fas fa-flag"></i> ' + SH(init.priority || 'Strategic') + '</span>';
+      document.getElementById('hd-rings').innerHTML =
+        '<div class="text-center"><div class="text-xs text-muted">Gatekeeper</div><div class="score-ring score-ring-sm ' + scoreRingClass(init.gatekeeperScore) + '">' + (init.gatekeeperScore != null ? init.gatekeeperScore : '—') + '</div></div>' +
+        '<div class="text-center"><div class="text-xs text-muted">Council</div><div class="score-ring score-ring-sm ' + scoreRingClass(init.councilScore) + '">' + (init.councilScore != null ? init.councilScore : '—') + '</div></div>';
+    }
+
+    function renderOverview() {
+      document.getElementById('tab-overview').innerHTML =
+        '<div class="grid grid-2">' +
+          '<div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Description</h3></div><p class="text-sm">' + SH(init.description || '—') + '</p></div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Problem Statement</h3></div><p class="text-sm">' + SH(init.problemStatement || '—') + '</p></div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Customer Evidence</h3></div><p class="text-sm">' + SH(init.customerEvidence || '—') + '</p></div>' +
+            '<div class="card"><div class="card-header"><h3 class="card-title">Proposed Solution</h3></div><p class="text-sm">' + SH(init.proposedSolution || init.description || '—') + '</p></div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Financial Summary</h3></div>' +
+              row('Budget Requested', formatCurrency(init.budgetRequested)) +
+              row('Budget Approved', formatCurrency(init.budgetApproved)) +
+              row('Budget Spent', formatCurrency(init.budgetSpent)) +
+              row('Stage Release', formatCurrency(init.stageRelease)) +
+              row('Confidence Level', init.confidenceLevel || '—') +
+              row('Domain', init.domain) +
+              row('Priority', init.priority) +
+            '</div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Metadata</h3></div>' +
+              row('Sponsor', init.sponsor) +
+              row('Submitter', init.submittedBy) +
+              row('Submitted', formatDate(init.submittedDate)) +
+              row('Brands', (init.brands || []).join(', ')) +
+              row('Markets', init.country) +
+            '</div>' +
+            (init.financialCase ? '<div class="card"><div class="card-header"><h3 class="card-title">Financial Case</h3></div><p class="text-sm">' + SH(init.financialCase) + '</p></div>' : '') +
+          '</div>' +
+        '</div>';
+    }
+    function row(k, v) { return '<div class="flex justify-between text-sm" style="padding:6px 0;border-bottom:1px solid var(--color-border);"><span class="text-muted">' + SH(k) + '</span><strong>' + SH(v != null && v !== '' ? v : '—') + '</strong></div>'; }
+
+    function renderSharks() {
+      const sv = init.sharkVerdicts || [];
+      if (!sv.length) {
+        document.getElementById('tab-sharks').innerHTML = '<div class="card text-center text-muted p-lg">No shark verdicts yet — Investment Committee panel has not convened.</div>';
+        return;
+      }
+      const main = sv.filter(s => s.shark !== 'Red Team');
+      const red = sv.find(s => s.shark === 'Red Team');
+      let html = '<div class="shark-grid">';
+      main.forEach(s => {
+        html += '<div class="shark-card" style="border-left-color:' + (s.color || '#6366f1') + ';">' +
+          '<div class="shark-head"><div class="shark-name"><span class="shark-icon" style="background:' + (s.color || '#6366f1') + ';">' + s.icon + '</span>' + SH(s.shark) + '</div>' +
+          '<span class="badge ' + scoreClass(s.score) + '">' + s.score + '</span></div>' +
+          '<div class="shark-meta"><span class="badge badge-neutral">Conf: ' + SH(s.confidence) + '</span><span class="badge ' + decisionClass(s.recommendation) + '">' + SH(s.recommendation) + '</span></div>' +
+          '<div class="shark-text">' + SH(s.assessment) + '</div></div>';
+      });
+      html += '</div>';
+      if (red) {
+        html += '<div class="card mt-lg" style="border-left:4px solid var(--color-danger);"><div class="flex justify-between items-center mb-md"><strong>' + red.icon + ' ' + SH(red.shark) + '</strong>' +
+          '<span class="badge badge-danger">' + SH(red.recommendation) + '</span></div>' +
+          '<div class="text-sm text-muted">' + SH(red.assessment) + '</div></div>';
+      }
+
+      // consensus
+      const avg = main.length ? Math.round(main.reduce((a,b)=>a+b.score,0)/main.length) : 0;
+      const dist = main.reduce((a,s) => { const r = s.recommendation; a[r] = (a[r] || 0) + 1; return a; }, {});
+      html += '<div class="card mt-lg"><div class="card-header"><h3 class="card-title">Panel Consensus</h3></div>' +
+        '<div class="grid grid-2"><div>' + row('Average Shark Score', avg) + row('Red Team Modifier', red ? red.score : 0) + row('Net Score', avg + (red ? red.score : 0)) + '</div>' +
+        '<div>' + Object.keys(dist).map(k => '<div class="flex justify-between text-sm" style="padding:4px 0;"><span>' + SH(k) + '</span><strong>' + dist[k] + '</strong></div>').join('') + '</div></div></div>';
+
+      document.getElementById('tab-sharks').innerHTML = html;
+    }
+
+    function renderScorecard() {
+      const dims = init.dimensions || {};
+      const keys = ['d1','d2','d3','d4','d5'];
+      const present = keys.filter(k => dims[k]);
+      if (!present.length) {
+        document.getElementById('tab-scorecard').innerHTML = '<div class="card text-center text-muted p-lg">No gatekeeper score yet.</div>';
+        return;
+      }
+      const html = '<div class="grid grid-2 mb-lg">' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Dimension Radar</h3></div><canvas id="chart-detail-radar" height="220"></canvas></div>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Overall Gatekeeper Score</h3></div>' +
+          '<div class="text-center"><div class="score-ring score-ring-lg ' + scoreRingClass(init.gatekeeperScore) + '" style="margin:0 auto 12px;">' + (init.gatekeeperScore || '—') + '</div>' +
+            '<div class="badge ' + scoreClass(init.gatekeeperScore) + '">' + scoreLabel(init.gatekeeperScore) + '</div>' +
+            (init.councilScore != null ? '<div class="mt-md"><div class="text-xs text-muted">Council Score</div><div class="text-2xl font-bold ' + (scoreClass(init.councilScore).replace('badge-','text-')) + '">' + init.councilScore + '</div></div>' : '') +
+          '</div>' +
+        '</div></div>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">5-Dimension Detail</h3></div>' +
+        present.map(k => {
+          const d = dims[k];
+          return '<div class="form-group"><div class="flex justify-between mb-sm"><strong>' + SH(d.name) + '</strong><div><span class="text-xs text-muted">w' + d.weight + '%</span> <span class="badge ' + scoreClass(d.score) + '">' + d.score + '</span></div></div>' +
+            '<div class="progress-bar"><div class="progress-bar-fill" style="width:' + d.score + '%;background:' + d.color + '"></div></div></div>';
+        }).join('') + '</div>';
+      document.getElementById('tab-scorecard').innerHTML = html;
+      AIC_CHARTS.radar('chart-detail-radar', present.map(k => dims[k].name), present.map(k => dims[k].score));
+    }
+
+    function renderBear() {
+      document.getElementById('tab-bear').innerHTML =
+        (init.bearCase ? '<div class="card mb-md" style="border-left:4px solid var(--color-warning);"><div class="card-header"><h3 class="card-title"><i class="fas fa-bear text-warning"></i> Bear Case Narrative</h3></div><p>' + SH(init.bearCase) + '</p></div>' : '<div class="card text-center text-muted p-lg">No bear case captured.</div>') +
+        (init.franchiseNote ? '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Franchise Note</h3></div><p class="text-sm text-muted">' + SH(init.franchiseNote) + '</p></div>' : '') +
+        (init.councilTension ? '<div class="card" style="border-left:4px solid var(--color-info);"><div class="card-header"><h3 class="card-title">Council Tension Notes</h3></div><p class="text-sm text-muted">' + SH(init.councilTension) + '</p></div>' : '');
+    }
+
+    function renderMeasure() {
+      const m = init.measurementPlan || {};
+      let html = '<div class="grid grid-2 mb-lg">' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Primary Metric</h3></div>' +
+          '<div class="text-lg font-semibold mb-md">' + SH(m.primaryMetric || '—') + '</div>' +
+          '<div class="flex items-center gap-md"><div class="text-center"><div class="text-xs text-muted">Baseline</div><div class="text-md font-semibold">' + SH(m.baselineValue || '—') + '</div></div>' +
+          '<div style="font-size:24px;color:var(--color-accent);">→</div>' +
+          '<div class="text-center"><div class="text-xs text-muted">Target</div><div class="text-md font-semibold text-success">' + SH(m.targetValue || '—') + '</div></div></div>' +
+        '</div>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Plan Details</h3></div>' +
+          row('Frequency', m.frequency) +
+          row('Data Source', m.dataSource) +
+          row('Attribution', m.attributionMethod) +
+          row('Owner', m.accountableOwner) +
+          row('Review Dates', m.reviewDates) +
+        '</div></div>';
+      const sec = m.secondaryMetrics || [];
+      if (sec.length) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Secondary Metrics</h3></div>' +
+          sec.map(s => '<div class="chip" style="margin-right:6px;">' + SH(s) + '</div>').join('') + '</div>';
+      }
+      const ba = init.benefitsActuals || [];
+      html += '<div class="grid grid-2 mb-md">' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Target vs Actual</h3></div>' +
+        (ba.length ? '<canvas id="chart-detail-line" height="200"></canvas>' : '<div class="text-muted text-center p-lg">No actuals captured yet.</div>') +
+        '</div>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Leading Indicators</h3></div><p class="text-sm text-muted">' + SH(m.leadingIndicators || 'Not specified') + '</p></div></div>';
+      if (ba.length) {
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Benefits Actuals</h3></div><div class="table-wrap"><table>' +
+          '<thead><tr><th>Period</th><th>Metric</th><th>Target</th><th>Actual</th><th>Variance</th><th>Status</th><th>Notes</th></tr></thead><tbody>' +
+          ba.map(b => '<tr><td>' + SH(b.period) + '</td><td>' + SH(b.metric) + '</td><td>' + b.target + '</td><td><strong>' + b.actual + '</strong></td><td>' + (b.variance > 0 ? '+' : '') + b.variance + '</td><td><span class="badge ' + (b.status === 'On Track' || b.status === 'Exceeding' ? 'badge-success' : 'badge-warning') + '">' + SH(b.status) + '</span></td><td class="text-xs text-muted">' + SH(b.notes || '') + '</td></tr>').join('') +
+          '</tbody></table></div></div>';
+      }
+      document.getElementById('tab-measure').innerHTML = html;
+      if (ba.length) {
+        AIC_CHARTS.line('chart-detail-line', ba.map(b => b.period), [
+          { label:'Target', data: ba.map(b => b.target), borderColor:'#64748b' },
+          { label:'Actual', data: ba.map(b => b.actual), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.15)' }
+        ]);
+      }
+    }
+
+    function renderGates() {
+      const gates = init.stageGates || [];
+      const totalBudget = gates.reduce((a,g) => a + (g.budget||0), 0);
+      const totalSpent  = gates.reduce((a,g) => a + (g.spent||0), 0);
+      const pct = totalBudget ? Math.round((totalSpent/totalBudget)*100) : 0;
+      let html = '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Overall Spend Progress</h3>' +
+        '<div class="text-sm font-semibold">' + formatCurrency(totalSpent) + ' / ' + formatCurrency(totalBudget) + ' (' + pct + '%)</div></div>' +
+        '<div class="progress-bar"><div class="progress-bar-fill" style="width:' + pct + '%;background:linear-gradient(90deg,#10b981,#3b82f6);"></div></div></div>';
+
+      if (!gates.length) {
+        html += '<div class="card text-center text-muted p-lg">No stage gates defined.</div>';
+        document.getElementById('tab-gates').innerHTML = html;
+        return;
+      }
+
+      html += '<div class="stage-timeline">';
+      gates.forEach((g, idx) => {
+        const cls = g.status === 'Complete' ? 'complete' : (g.status === 'Active' ? 'active' : '');
+        const stagePct = g.budget ? Math.round((g.spent / g.budget) * 100) : 0;
+        const isAdmin = AIC_SEC.hasRole(user.role, 'Investment_Committee');
+        const canApprove = isAdmin && g.status === 'Locked' && idx > 0 && (gates[idx-1].status === 'Complete' || gates[idx-1].status === 'Active');
+        html += '<div class="stage-card ' + cls + '">' +
+          '<div class="stage-name">' + SH(g.stage) + '</div>' +
+          '<div class="stage-budget">' + formatCurrency(g.budget,'USD',true) + '</div>' +
+          '<div class="stage-spent">Spent ' + formatCurrency(g.spent,'USD',true) + ' · ' + SH(g.date || '') + '</div>' +
+          '<div class="progress-bar mt-sm"><div class="progress-bar-fill" style="width:' + stagePct + '%"></div></div>' +
+          '<span class="badge ' + (g.status === 'Complete' ? 'badge-success' : g.status === 'Active' ? 'badge-info' : 'badge-neutral') + ' mt-sm" style="margin-top:8px;">' + SH(g.status) + '</span>' +
+          '<ul class="stage-criteria">' + (g.exitCriteria || []).map(c => '<li>' + SH(c) + '</li>').join('') + '</ul>' +
+          (canApprove ? '<button class="btn btn-success btn-sm mt-md" data-approve-stage="' + AIC_SEC.encodeAttr(g.stage) + '"><i class="fas fa-circle-check"></i> Approve Gate</button>' : '') +
+          '</div>';
+      });
+      html += '</div>';
+      document.getElementById('tab-gates').innerHTML = html;
+
+      document.querySelectorAll('[data-approve-stage]').forEach(b => b.addEventListener('click', async () => {
+        const stage = b.getAttribute('data-approve-stage');
+        const ok = await showConfirm('Approve stage gate', 'Approve <strong>' + AIC_SEC.escapeHtml(stage) + '</strong>? This releases the next tranche of capital and is logged in the audit trail.', 'Approve');
+        if (!ok) return;
+        const newGates = (init.stageGates || []).map(g => g.stage === stage ? Object.assign({}, g, { status:'Active' }) : g);
+        AIC_DB.updateInitiative(init.id, { stageGates: newGates, stage: stage.replace(':',' —') });
+        AIC_SEC.audit('STAGE_GATE_APPROVED', { id: init.id, stage }, 'INFO');
+        AIC_SEC.flushAudit();
+        showToast('Stage gate approved — ' + stage, 'success');
+        init = AIC_DB.getInitiative(init.id);
+        renderHeader(); renderGates();
+      }));
+    }
+
+    function renderEntry() {
+      const canCouncil = AIC_SEC.hasRole(user.role, 'Investment_Committee');
+      let html = '';
+      if (init.scoredBy) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Gatekeeper Submission</h3></div>' +
+          row('Scored By', init.scoredBy) + row('Scored At', formatDate(init.scoredAt)) + row('Score', init.gatekeeperScore) +
+          row('Justification', init.gatekeeperNote) + row('Conditions', init.gatekeeperConditions) + '</div>';
+      }
+      if (init.votedBy) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Council Vote</h3></div>' +
+          row('Voted By', init.votedBy) + row('Voted At', formatDate(init.votedAt)) + row('Score', init.councilScore) +
+          row('Recommendation', init.councilRecommendation) + row('Verdict', init.councilVerdict) + '</div>';
+      }
+      if (canCouncil) {
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Cast Council Score</h3></div>' +
+          '<p class="text-muted text-sm">Use the <strong>Council Vote</strong> button on the Council View to record your vote against this initiative.</p>' +
+          '<a class="btn btn-primary" href="cxo-dashboard.html"><i class="fas fa-gavel"></i> Open Council View</a></div>';
+      } else if (!html) {
+        html = '<div class="card text-center text-muted p-lg">No scoring activity recorded yet.</div>';
+      }
+      document.getElementById('tab-entry').innerHTML = html;
+    }
+
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      const t = e.target.closest('.tab');
+      if (!t) return;
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + t.getAttribute('data-tab')).classList.add('active');
+    });
+
+    renderHeader();
+    renderOverview();
+    renderSharks();
+    renderScorecard();
+    renderBear();
+    renderMeasure();
+    renderGates();
+    renderEntry();
+  }
+});
+</script>
+
+</body>
+</html>
