@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Sign in — Alshaya Investment Council</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+</head>
+<body>
+
+<div class="login-shell">
+
+  <!-- Hero / brand panel -->
+  <section class="login-hero">
+    <div class="login-brand">
+      <div class="logo-mark">AIC</div>
+      <div>
+        <h2>Alshaya Investment Council</h2>
+        <div class="brand-sub">Strategic Technology Investments</div>
+      </div>
+    </div>
+
+    <div class="login-headline">
+      <h1>One platform.<br/>Rigorous decisions.</h1>
+      <p class="tagline">Where Alshaya's 70+ retail brands turn ideas into measurable, capital-efficient outcomes.</p>
+      <ul class="feature-list">
+        <li><span class="feat-icon"><i class="fas fa-shield-halved"></i></span>Enterprise-grade security with Microsoft Entra ID, RBAC and PDPL compliance</li>
+        <li><span class="feat-icon"><i class="fas fa-chart-pie"></i></span>5-dimension gatekeeper scoring + 6-shark Investment Committee panel</li>
+        <li><span class="feat-icon"><i class="fas fa-money-bill-trend-up"></i></span>Stage-gated capital releases — from Discovery to Full Rollout</li>
+        <li><span class="feat-icon"><i class="fas fa-microscope"></i></span>Bear-case narratives, measurement plans &amp; outcome tracking baked in</li>
+      </ul>
+    </div>
+
+    <div class="login-foot">
+      <span>v2.1.0 · INTERNAL-CONFIDENTIAL</span>
+      <span>© 2026 Alshaya Group</span>
+    </div>
+  </section>
+
+  <!-- Login panel -->
+  <section class="login-panel">
+    <div class="login-panel-inner">
+      <h2>Sign In</h2>
+      <p class="login-sub">Use your Alshaya corporate identity, or pick a demo profile to explore the portal.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="aad-email">Corporate Email</label>
+        <input id="aad-email" type="email" placeholder="firstname.lastname@alshaya.com" autocomplete="username" />
+      </div>
+
+      <button id="btn-aad" class="btn btn-primary btn-block btn-lg">
+        <i class="fab fa-microsoft"></i> Sign in with Azure AD
+      </button>
+
+      <div class="login-divider">— or sign in for demo —</div>
+
+      <div class="form-group">
+        <label class="form-label" for="demo-user">Choose Demo User</label>
+        <select id="demo-user">
+          <option value="">— select a profile —</option>
+        </select>
+        <small class="form-help">Demo mode uses local browser storage only. No data leaves your device.</small>
+      </div>
+
+      <div id="user-preview" style="display:none;"></div>
+
+      <button id="btn-demo" class="btn btn-secondary btn-block btn-lg" disabled style="margin-top:14px;">
+        <i class="fas fa-arrow-right-to-bracket"></i> Continue as Demo User
+      </button>
+
+      <p class="text-xs text-muted mt-md text-center">
+        Need access? Email
+        <a href="mailto:aic-support@alshaya.com">aic-support@alshaya.com</a>
+      </p>
+    </div>
+  </section>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  // populate demo user selector grouped by role
+  const select = document.getElementById('demo-user');
+  const users = AIC_DB.getUsers();
+  const groups = {
+    'Platform_Admin': 'Platform Admin',
+    'Investment_Committee': 'Investment Committee',
+    'Strategy_Reviewer': 'Strategy Reviewers',
+    'Initiative_Submitter': 'Initiative Submitters',
+    'Portfolio_Viewer': 'Portfolio Viewers'
+  };
+  Object.keys(groups).forEach(role => {
+    const list = users.filter(u => u.role === role);
+    if (!list.length) return;
+    const og = document.createElement('optgroup');
+    og.label = groups[role];
+    list.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.id;
+      o.textContent = u.name + ' — ' + u.title;
+      og.appendChild(o);
+    });
+    select.appendChild(og);
+  });
+
+  const preview = document.getElementById('user-preview');
+  const btn = document.getElementById('btn-demo');
+
+  select.addEventListener('change', () => {
+    const u = users.find(x => x.id === select.value);
+    if (!u) {
+      preview.style.display = 'none';
+      btn.disabled = true;
+      return;
+    }
+    preview.style.display = 'flex';
+    preview.className = 'user-preview';
+    preview.innerHTML =
+      '<div class="avatar">' + AIC_SEC.escapeHtml(u.initials) + '</div>' +
+      '<div class="up-meta">' +
+        '<div class="up-name">' + AIC_SEC.escapeHtml(u.name) + '</div>' +
+        '<div class="up-title">' + AIC_SEC.escapeHtml(u.title) + ' · ' + AIC_SEC.escapeHtml(u.department) + '</div>' +
+      '</div>' +
+      '<span class="badge badge-accent">' + AIC_SEC.escapeHtml(u.role.replace(/_/g, ' ')) + '</span>';
+    btn.disabled = false;
+  });
+
+  function routeForRole(role) {
+    switch (role) {
+      case 'Platform_Admin':       return 'admin.html';
+      case 'Investment_Committee': return 'cxo-dashboard.html';
+      case 'Strategy_Reviewer':    return 'strategy-dashboard.html';
+      case 'Initiative_Submitter': return 'initiator-dashboard.html';
+      case 'Portfolio_Viewer':     return 'cxo-dashboard.html';
+      default: return 'portal-router.html';
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    const u = users.find(x => x.id === select.value);
+    if (!u) return;
+    const rl = AIC_SEC.checkRateLimit('login', 5, 60000);
+    if (!rl.allowed) { showToast('Too many login attempts. Try again shortly.', 'error'); return; }
+    AIC_DB.setUser(u);
+    AIC_SEC.createSession(u);
+    AIC_SEC.audit('LOGIN_SUCCESS', { userId: u.id, role: u.role, method:'demo' }, 'INFO');
+    AIC_SEC.flushAudit();
+    showToast('Welcome, ' + u.name, 'success', 1200);
+    setTimeout(() => { window.location.href = routeForRole(u.role); }, 250);
+  });
+
+  document.getElementById('btn-aad').addEventListener('click', async () => {
+    if (!AIC_CONFIG.features.enableAzureAD) {
+      showToast('Azure AD is disabled in this build. Pick a demo user below.', 'warning');
+      return;
+    }
+    try {
+      await AIC_AUTH.login();
+    } catch (e) {
+      showToast('Sign-in failed: ' + e.message, 'error');
+    }
+  });
+
+  // pre-fill pre-existing user (browser refresh after demo login)
+  const existing = AIC_DB.getUser();
+  if (existing && AIC_SEC.checkSession().valid) {
+    const r = routeForRole(existing.role);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout') !== '1') {
+      console.debug('[AIC Login] active session for ' + existing.email + ' — auto-routing');
+    }
+  } else if (params_get('logout') === '1') {
+    AIC_DB.signOut();
+  }
+  function params_get(k){ try { return new URLSearchParams(window.location.search).get(k); } catch(e) { return null; } }
+})();
+</script>
+
+</body>
+</html>

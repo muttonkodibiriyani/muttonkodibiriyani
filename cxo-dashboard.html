@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Investment Committee — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">AIC</div>
+    <div><div>Investment Council</div><div class="logo-sub">v2.1.0</div></div>
+  </div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item" data-nav-page="strategy-dashboard.html" data-min-role="Strategy_Reviewer" href="strategy-dashboard.html"><i class="fas fa-clipboard-check"></i> Gatekeeper</a>
+  <a class="nav-item" data-nav-page="cxo-dashboard.html" href="cxo-dashboard.html"><i class="fas fa-chart-line"></i> Council View</a>
+  <div class="nav-section-label">Resources</div>
+  <a class="nav-item" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <a class="nav-item" data-nav-page="admin.html" data-min-role="Platform_Admin" href="admin.html"><i class="fas fa-shield-halved"></i> Admin</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn" title="Sign out"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar">
+    <h1>Investment Committee — Portfolio</h1>
+    <div class="top-actions">
+      <button id="btn-view" class="btn btn-secondary"><i class="fas fa-table-list"></i> Kanban</button>
+      <button id="btn-export" class="btn btn-secondary"><i class="fas fa-download"></i> Export</button>
+      <button id="btn-council" class="btn btn-primary" data-min-role="Investment_Committee"><i class="fas fa-gavel"></i> Council Vote</button>
+    </div>
+  </header>
+  <main class="page-body">
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <div class="grid grid-2 mb-lg">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Budget by Domain</h3></div>
+        <canvas id="chart-domain" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Score Distribution</h3></div>
+        <canvas id="chart-scores" height="200"></canvas>
+      </div>
+    </div>
+    <div class="grid grid-2 mb-lg">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Pipeline Funnel</h3></div>
+        <canvas id="chart-funnel" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Budget Utilisation by Stage</h3></div>
+        <canvas id="chart-stage" height="200"></canvas>
+      </div>
+    </div>
+
+    <div id="view-table">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">All Initiatives</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Domain</th><th>Status</th><th>Stage</th><th>GK</th><th>Council</th><th>Budget</th><th>Spent</th><th></th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-kanban" style="display:none;">
+      <div class="kanban" id="kanban"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Council vote modal -->
+<div id="council-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Investment Committee Vote</h3>
+      <button class="modal-close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Initiative</label>
+        <select id="council-pick"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;justify-content:space-between;">
+          <span>Council Score</span><span id="council-score-bubble" class="text-accent font-semibold">75</span>
+        </label>
+        <input id="council-score" type="range" min="0" max="100" value="75" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Recommendation</label>
+        <select id="council-rec">
+          <option value="STRONG INVEST">STRONG INVEST</option>
+          <option value="INVEST">INVEST</option>
+          <option value="CONDITIONAL">CONDITIONAL</option>
+          <option value="NO INVEST">NO INVEST</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Verdict / Justification</label>
+        <textarea id="council-just" placeholder="Capture decision rationale, conditions, and dissenting views…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>Cancel</button>
+      <button id="btn-council-submit" class="btn btn-primary"><i class="fas fa-gavel"></i> Cast Vote</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({
+  allowedRoles: ['Investment_Committee','Strategy_Reviewer','Platform_Admin','Portfolio_Viewer'],
+  onReady: async function (user) {
+    let cache = AIC_DB.getInitiatives();
+    let kanbanMode = false;
+
+    function renderStats() {
+      const s = AIC_DB.getPortfolioSummary();
+      const active = (s.byStatus['Approved'] || 0);
+      document.getElementById('stat-grid').innerHTML =
+        statCard('Active Portfolio', active, 'approved initiatives', '#10b981') +
+        statCard('Total Committed', formatCurrency(s.totalApproved, 'USD', true), 'budget approved', '#3b82f6') +
+        statCard('Utilisation', s.utilisationPct + '%', formatCurrency(s.totalSpent,'USD',true) + ' spent', '#f59e0b') +
+        statCard('Avg Council Score', s.avgCouncilScore || '—', 'across portfolio', '#8b5cf6');
+    }
+    function statCard(label, value, sub, color) {
+      return '<div class="stat-card" style="--accent-color:' + color + '"><div class="stat-label">' + AIC_SEC.escapeHtml(label) + '</div><div class="stat-value">' + AIC_SEC.escapeHtml(value) + '</div><div class="stat-sub">' + AIC_SEC.escapeHtml(sub) + '</div></div>';
+    }
+
+    function renderTable() {
+      const tb = document.getElementById('tbody');
+      tb.innerHTML = cache.map(i =>
+        '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
+        '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td><span class="chip">' + AIC_SEC.escapeHtml(i.domain) + '</span></td>' +
+        '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
+        '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +
+        '<td>' + (i.gatekeeperScore != null ? '<span class="badge ' + scoreClass(i.gatekeeperScore) + '">' + i.gatekeeperScore + '</span>' : '—') + '</td>' +
+        '<td>' + (i.councilScore != null ? '<span class="badge ' + scoreClass(i.councilScore) + '">' + i.councilScore + '</span>' : '—') + '</td>' +
+        '<td>' + formatCurrency(i.budgetRequested,'USD',true) + '</td>' +
+        '<td>' + formatCurrency(i.budgetSpent,'USD',true) + '</td>' +
+        '<td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button></td></tr>'
+      ).join('');
+      tb.querySelectorAll('[data-go]').forEach(t => t.addEventListener('click', () => window.location.href = 'initiative-detail.html?id=' + encodeURIComponent(t.getAttribute('data-go'))));
+    }
+
+    function renderKanban() {
+      const cols = ['Draft','Submitted','Validated','Approved','Closed'];
+      const groups = {};
+      cols.forEach(c => groups[c] = cache.filter(i => i.status === c));
+      document.getElementById('kanban').innerHTML = cols.map(c =>
+        '<div class="kanban-col">' +
+          '<div class="kanban-col-title">' + c + ' <span>' + groups[c].length + '</span></div>' +
+          groups[c].map(i =>
+            '<div class="kanban-card" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
+              '<div class="kc-title">' + AIC_SEC.escapeHtml(i.title) + '</div>' +
+              '<div class="text-xs text-muted mb-sm">' + AIC_SEC.escapeHtml(i.domain) + '</div>' +
+              '<div class="kc-meta">' +
+                '<div class="text-xs">' + formatCurrency(i.budgetRequested,'USD',true) + '</div>' +
+                (i.gatekeeperScore != null ? '<div class="score-ring score-ring-sm ' + scoreRingClass(i.gatekeeperScore) + '">' + i.gatekeeperScore + '</div>' : '<div class="text-xs text-muted">—</div>') +
+              '</div>' +
+            '</div>'
+          ).join('') +
+        '</div>'
+      ).join('');
+      document.querySelectorAll('.kanban-card').forEach(c => c.addEventListener('click', () => window.location.href = 'initiative-detail.html?id=' + encodeURIComponent(c.getAttribute('data-go'))));
+    }
+
+    function renderCharts() {
+      const s = AIC_DB.getPortfolioSummary();
+      const dKeys = Object.keys(s.byDomain);
+      const dBudget = dKeys.map(d => cache.filter(i => i.domain === d).reduce((a,b) => a + (b.budgetRequested||0), 0));
+      AIC_CHARTS.doughnut('chart-domain', dKeys, dBudget, ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#6366f1','#06b6d4']);
+
+      const buckets = ['<60','60-74','75-89','90+'];
+      const bv = [
+        cache.filter(i => i.gatekeeperScore != null && i.gatekeeperScore < 60).length,
+        cache.filter(i => i.gatekeeperScore != null && i.gatekeeperScore >= 60 && i.gatekeeperScore < 75).length,
+        cache.filter(i => i.gatekeeperScore != null && i.gatekeeperScore >= 75 && i.gatekeeperScore < 90).length,
+        cache.filter(i => i.gatekeeperScore != null && i.gatekeeperScore >= 90).length
+      ];
+      AIC_CHARTS.bar('chart-scores', buckets, [{ label:'Initiatives', data: bv, backgroundColor:['#ef4444','#f59e0b','#10b981','#6366f1'] }]);
+
+      const stages = ['Draft','Submitted','Validated','Approved','Closed'];
+      const counts = stages.map(st => cache.filter(i => i.status === st).length);
+      AIC_CHARTS.bar('chart-funnel', stages, [{ label:'Count', data: counts, backgroundColor:'#6366f1' }], { indexAxis:'y' });
+
+      const stageLabels = ['Stage 0','Stage 1','Stage 2','Stage 3'];
+      const approvedTotals = [0,0,0,0];
+      const spentTotals = [0,0,0,0];
+      cache.forEach(i => (i.stageGates || []).forEach((g, idx) => {
+        if (idx < 4) { approvedTotals[idx] += (g.budget || 0); spentTotals[idx] += (g.spent || 0); }
+      }));
+      AIC_CHARTS.bar('chart-stage', stageLabels, [
+        { label:'Spent', data: spentTotals, backgroundColor:'#10b981' },
+        { label:'Remaining', data: approvedTotals.map((b,idx) => Math.max(0, b - spentTotals[idx])), backgroundColor:'#334155' }
+      ], { scales:{ x:{ stacked:true, grid:{ color:'rgba(148,163,184,0.1)' }, ticks:{ color:'#94a3b8' } }, y:{ stacked:true, grid:{ color:'rgba(148,163,184,0.1)' }, ticks:{ color:'#94a3b8' } } } });
+    }
+
+    document.getElementById('btn-view').addEventListener('click', () => {
+      kanbanMode = !kanbanMode;
+      document.getElementById('view-table').style.display = kanbanMode ? 'none' : 'block';
+      document.getElementById('view-kanban').style.display = kanbanMode ? 'block' : 'none';
+      document.getElementById('btn-view').innerHTML = kanbanMode ? '<i class="fas fa-table"></i> Table' : '<i class="fas fa-table-list"></i> Kanban';
+      if (kanbanMode) renderKanban();
+    });
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const rows = cache.map(i => ({
+        ID: i.id, Title: i.title, Domain: i.domain, Status: i.status, Stage: i.stage,
+        Submitter: i.submittedBy, Sponsor: i.sponsor, Budget: i.budgetRequested,
+        Approved: i.budgetApproved, Spent: i.budgetSpent, GatekeeperScore: i.gatekeeperScore, CouncilScore: i.councilScore, Decision: i.decision
+      }));
+      exportToCsv('aic-portfolio-' + new Date().toISOString().slice(0,10) + '.csv', rows);
+    });
+
+    // Council vote modal
+    const modal = document.getElementById('council-modal');
+    function openModal() {
+      const sel = document.getElementById('council-pick');
+      const eligible = cache.filter(i => i.status === 'Validated' || i.status === 'Approved');
+      sel.innerHTML = eligible.map(i => '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>').join('');
+      modal.style.display = 'flex';
+    }
+    function closeModal() { modal.style.display = 'none'; }
+    document.getElementById('btn-council').addEventListener('click', () => {
+      if (!AIC_SEC.hasRole(user.role, 'Investment_Committee')) { showToast('Council votes are limited to Investment Committee members.', 'warning'); return; }
+      openModal();
+    });
+    modal.addEventListener('click', e => { if (e.target === modal || e.target.matches('[data-close]')) closeModal(); });
+    document.getElementById('council-score').addEventListener('input', e => document.getElementById('council-score-bubble').textContent = e.target.value);
+    document.getElementById('btn-council-submit').addEventListener('click', () => {
+      const id = document.getElementById('council-pick').value;
+      if (!id) return;
+      const just = AIC_SEC.validate.text(document.getElementById('council-just').value, { required:true, min:20 });
+      if (!just.ok) { showToast('Verdict required (min 20 chars)', 'error'); return; }
+      const score = Number(document.getElementById('council-score').value);
+      const rec = document.getElementById('council-rec').value;
+      const decision = ({
+        'STRONG INVEST':'Invest','INVEST':'Invest','CONDITIONAL':'Conditional Invest','NO INVEST':'Rejected'
+      })[rec];
+      const status = decision === 'Rejected' ? 'Rejected' : 'Approved';
+      const stage = decision === 'Rejected' ? 'Rejected' : 'Stage 0 — Discovery';
+      const init = AIC_DB.getInitiative(id);
+      const stageRelease = decision !== 'Rejected' ? Math.round((init.budgetRequested || 0) * AIC_CONFIG.financial.stageFunding.stage0Pct) : 0;
+      AIC_DB.updateInitiative(id, {
+        councilScore: score,
+        decision: decision,
+        status: status,
+        stage: stage,
+        budgetApproved: decision === 'Rejected' ? 0 : init.budgetRequested,
+        stageRelease: stageRelease,
+        councilVerdict: just.value,
+        councilRecommendation: rec,
+        votedBy: user.name,
+        votedAt: new Date().toISOString()
+      });
+      AIC_SEC.audit('COUNCIL_VOTE', { id, score, recommendation: rec }, 'INFO');
+      showToast('Council vote recorded — ' + rec, 'success');
+      closeModal();
+      cache = AIC_DB.getInitiatives();
+      renderStats(); renderTable(); renderCharts();
+    });
+
+    renderStats();
+    renderTable();
+    renderCharts();
+  }
+});
+</script>
+
+</body>
+</html>

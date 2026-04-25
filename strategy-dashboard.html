@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Gatekeeper Review — AIC Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">AIC</div>
+    <div><div>Investment Council</div><div class="logo-sub">v2.1.0</div></div>
+  </div>
+  <div class="nav-section-label">Workspace</div>
+  <a class="nav-item" data-nav-page="initiator-dashboard.html" href="initiator-dashboard.html"><i class="fas fa-folder-tree"></i> Initiatives</a>
+  <a class="nav-item" data-nav-page="submit-initiative.html" href="submit-initiative.html"><i class="fas fa-plus"></i> New Initiative</a>
+  <div class="nav-section-label">Review</div>
+  <a class="nav-item" data-nav-page="strategy-dashboard.html" href="strategy-dashboard.html"><i class="fas fa-clipboard-check"></i> Gatekeeper</a>
+  <a class="nav-item" data-nav-page="cxo-dashboard.html" data-min-role="Investment_Committee" href="cxo-dashboard.html"><i class="fas fa-chart-line"></i> Council View</a>
+  <div class="nav-section-label">Resources</div>
+  <a class="nav-item" data-nav-page="ms-guide.html" href="ms-guide.html"><i class="fas fa-book"></i> Scoring Guide</a>
+  <a class="nav-item" data-nav-page="admin.html" data-min-role="Platform_Admin" href="admin.html"><i class="fas fa-shield-halved"></i> Admin</a>
+  <div class="sidebar-footer">
+    <div class="avatar">--</div>
+    <div class="user-meta"><div class="user-name">—</div><div class="user-role">—</div></div>
+    <button class="signout-btn" title="Sign out"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <header class="top-bar">
+    <h1>Gatekeeper Review</h1>
+    <div class="top-actions">
+      <button id="btn-jump" class="btn btn-secondary"><i class="fas fa-bullseye"></i> Score Pending</button>
+    </div>
+  </header>
+  <main class="page-body">
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="pending">Pending Review</button>
+      <button class="tab" data-tab="pipeline">Full Pipeline</button>
+      <button class="tab" data-tab="score">Score Entry</button>
+      <button class="tab" data-tab="insights">Portfolio Insights</button>
+    </div>
+
+    <section id="tab-pending" class="tab-panel active">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Initiatives Awaiting Gatekeeper Score</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Domain</th><th>Submitter</th><th>Submitted</th><th>Budget</th><th></th></tr></thead>
+            <tbody id="tbody-pending"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-pipeline" class="tab-panel">
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Domain</th><th>Status</th><th>Stage</th><th>GK</th><th>Council</th><th>Budget</th></tr></thead>
+            <tbody id="tbody-pipeline"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-score" class="tab-panel">
+      <div class="grid grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Score Entry</h3></div>
+          <div class="form-group">
+            <label class="form-label">Select Initiative</label>
+            <select id="score-pick"><option value="">— select —</option></select>
+          </div>
+          <div id="dim-sliders"></div>
+          <div class="form-group">
+            <label class="form-label">Justification (required)</label>
+            <textarea id="justification" placeholder="Explain key drivers behind the score…"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Recommendation</label>
+              <select id="recommendation">
+                <option value="PASS">PASS — recommend to Council</option>
+                <option value="CONDITIONAL">CONDITIONAL — pass with conditions</option>
+                <option value="RETURN">RETURN — to submitter for revision</option>
+                <option value="REJECT">REJECT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confidence</label>
+              <select id="confidence"><option>High</option><option>Medium</option><option>Low</option></select>
+            </div>
+          </div>
+          <div id="conditions-wrap" class="form-group" style="display:none;">
+            <label class="form-label">Conditions</label>
+            <textarea id="conditions" placeholder="List specific conditions to satisfy before Stage 1 capital release…"></textarea>
+          </div>
+          <button id="btn-submit-score" class="btn btn-primary btn-block btn-lg" disabled><i class="fas fa-check"></i> Submit Score</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Live Score</h3></div>
+          <div class="text-center mb-md">
+            <div id="live-ring" class="score-ring score-ring-lg none" style="margin:0 auto 12px;">—</div>
+            <div id="live-label" class="badge badge-neutral">Pending</div>
+          </div>
+          <canvas id="chart-radar" height="200"></canvas>
+          <div class="divider"></div>
+          <div class="text-sm text-muted">Weights: 30 / 25 / 20 / 15 / 10 — Pass ≥ 75 · Conditional 60–74</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-insights" class="tab-panel">
+      <div class="grid grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Average Gatekeeper Score by Domain</h3></div>
+          <canvas id="chart-domain" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Pipeline Funnel</h3></div>
+          <canvas id="chart-funnel" height="200"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Strategic Heatmap</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Domain</th><th>Count</th><th>Avg Score</th><th>Total Budget</th><th>Status Mix</th></tr></thead>
+            <tbody id="tbody-heat"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/security.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/azure-api.js"></script>
+<script src="js/app.js"></script>
+<script>
+initPage({
+  allowedRoles: ['Strategy_Reviewer','Investment_Committee','Platform_Admin'],
+  onReady: async function (user) {
+    let cache = AIC_DB.getInitiatives();
+
+    function pending() { return cache.filter(i => i.status === 'Submitted' || i.stage === 'Gatekeeper Review'); }
+    function awaitingCouncil() { return cache.filter(i => i.status === 'Validated' || i.stage === 'Awaiting Council'); }
+
+    function renderStats() {
+      const p = pending();
+      const aw = awaitingCouncil();
+      const month = new Date().toISOString().slice(0,7);
+      const scoredMonth = cache.filter(i => i.gatekeeperScore != null && i.lastUpdated && i.lastUpdated.indexOf(month) === 0).length;
+      const avg = (() => { const s = cache.filter(i => i.gatekeeperScore!=null); return s.length ? Math.round(s.reduce((a,b)=>a+b.gatekeeperScore,0)/s.length) : 0; })();
+      document.getElementById('stat-grid').innerHTML =
+        statCard('Pending My Review', p.length, 'awaiting score', '#f59e0b') +
+        statCard('Awaiting Council', aw.length, 'validated, queued', '#3b82f6') +
+        statCard('Scored This Month', scoredMonth, 'completed reviews', '#10b981') +
+        statCard('Avg GK Score', avg, 'across portfolio', '#8b5cf6');
+    }
+    function statCard(label, value, sub, color) {
+      return '<div class="stat-card" style="--accent-color:' + color + '"><div class="stat-label">' + AIC_SEC.escapeHtml(label) + '</div><div class="stat-value">' + AIC_SEC.escapeHtml(value) + '</div><div class="stat-sub">' + AIC_SEC.escapeHtml(sub) + '</div></div>';
+    }
+
+    function renderPending() {
+      const tb = document.getElementById('tbody-pending');
+      const list = pending();
+      if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-lg">No initiatives currently awaiting your review.</td></tr>'; return; }
+      tb.innerHTML = list.map(i =>
+        '<tr><td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td><span class="chip">' + AIC_SEC.escapeHtml(i.domain) + '</span></td>' +
+        '<td>' + AIC_SEC.escapeHtml(i.submittedBy || '') + '</td>' +
+        '<td class="text-xs">' + formatDate(i.submittedDate) + '</td>' +
+        '<td>' + formatCurrency(i.budgetRequested, 'USD', true) + '</td>' +
+        '<td><button class="btn btn-primary btn-sm" data-score="' + AIC_SEC.encodeAttr(i.id) + '"><i class="fas fa-clipboard-check"></i> Score</button></td></tr>'
+      ).join('');
+      tb.querySelectorAll('[data-score]').forEach(b => b.addEventListener('click', () => {
+        document.querySelector('.tab[data-tab="score"]').click();
+        document.getElementById('score-pick').value = b.getAttribute('data-score');
+        document.getElementById('score-pick').dispatchEvent(new Event('change'));
+      }));
+    }
+
+    function renderPipeline() {
+      const tb = document.getElementById('tbody-pipeline');
+      tb.innerHTML = cache.map(i =>
+        '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
+        '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td>' + AIC_SEC.escapeHtml(i.domain) + '</td>' +
+        '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
+        '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +
+        '<td>' + (i.gatekeeperScore != null ? '<span class="badge ' + scoreClass(i.gatekeeperScore) + '">' + i.gatekeeperScore + '</span>' : '<span class="text-muted">—</span>') + '</td>' +
+        '<td>' + (i.councilScore != null ? '<span class="badge ' + scoreClass(i.councilScore) + '">' + i.councilScore + '</span>' : '<span class="text-muted">—</span>') + '</td>' +
+        '<td>' + formatCurrency(i.budgetRequested, 'USD', true) + '</td></tr>'
+      ).join('');
+      tb.querySelectorAll('[data-go]').forEach(t => t.addEventListener('click', () => window.location.href = 'initiative-detail.html?id=' + encodeURIComponent(t.getAttribute('data-go'))));
+    }
+
+    // --- Score entry ---
+    const dimDefs = [
+      { key:'d1', name:'Financial Return Credibility', weight:30, color:'#3b82f6' },
+      { key:'d2', name:'Customer & Market Validity', weight:25, color:'#10b981' },
+      { key:'d3', name:'Technical & Delivery Credibility', weight:20, color:'#f59e0b' },
+      { key:'d4', name:'Strategic Alignment & Optionality', weight:15, color:'#8b5cf6' },
+      { key:'d5', name:'Operational & Risk Credibility', weight:10, color:'#ef4444' }
+    ];
+    function buildPickList() {
+      const sel = document.getElementById('score-pick');
+      sel.innerHTML = '<option value="">— select an initiative —</option>' +
+        cache.filter(i => i.status !== 'Closed' && i.status !== 'Draft').map(i =>
+          '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>'
+        ).join('');
+    }
+    function buildSliders(initiative) {
+      const wrap = document.getElementById('dim-sliders');
+      wrap.innerHTML = dimDefs.map(d => {
+        const v = (initiative && initiative.dimensions && initiative.dimensions[d.key]) ? initiative.dimensions[d.key].score : 50;
+        return '<div class="form-group">' +
+          '<label class="form-label" style="display:flex;justify-content:space-between;">' +
+            '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + d.color + ';margin-right:6px;"></span>' + AIC_SEC.escapeHtml(d.name) + ' <span class="text-muted text-xs">w' + d.weight + '%</span></span>' +
+            '<span class="text-accent font-semibold" data-bubble="' + d.key + '">' + v + '</span>' +
+          '</label>' +
+          '<input type="range" min="0" max="100" value="' + v + '" data-dim="' + d.key + '" />' +
+          '</div>';
+      }).join('');
+      wrap.querySelectorAll('input[type=range]').forEach(r => r.addEventListener('input', updateLive));
+      updateLive();
+    }
+    function updateLive() {
+      const dims = {};
+      document.querySelectorAll('input[data-dim]').forEach(r => {
+        const k = r.getAttribute('data-dim');
+        const def = dimDefs.find(d => d.key === k);
+        dims[k] = { name: def.name, score: Number(r.value), weight: def.weight, color: def.color };
+        const b = document.querySelector('[data-bubble="' + k + '"]');
+        if (b) b.textContent = r.value;
+      });
+      const score = AIC_DB.computeGatekeeperScore(dims);
+      const ring = document.getElementById('live-ring');
+      ring.textContent = score;
+      ring.className = 'score-ring score-ring-lg ' + scoreRingClass(score);
+      const lbl = document.getElementById('live-label');
+      lbl.textContent = scoreLabel(score);
+      lbl.className = 'badge ' + scoreClass(score);
+      AIC_CHARTS.radar('chart-radar', dimDefs.map(d => d.name), dimDefs.map(d => dims[d.key].score));
+    }
+
+    document.getElementById('score-pick').addEventListener('change', (e) => {
+      const id = e.target.value;
+      const init = id ? AIC_DB.getInitiative(id) : null;
+      buildSliders(init);
+      document.getElementById('btn-submit-score').disabled = !id;
+    });
+    document.getElementById('recommendation').addEventListener('change', (e) => {
+      document.getElementById('conditions-wrap').style.display = e.target.value === 'CONDITIONAL' ? 'block' : 'none';
+    });
+    document.getElementById('btn-submit-score').addEventListener('click', async () => {
+      const rl = AIC_SEC.checkRateLimit('score-submit', 10, 60000);
+      if (!rl.allowed) { showToast('Submitting too quickly. Please wait.', 'warning'); return; }
+      const id = document.getElementById('score-pick').value;
+      if (!id) return;
+      const just = AIC_SEC.validate.text(document.getElementById('justification').value, { required:true, min:20, max:2000 });
+      if (!just.ok) { showToast('Justification: ' + just.msg + ' (≥20 chars)', 'error'); return; }
+      const dims = {};
+      document.querySelectorAll('input[data-dim]').forEach(r => {
+        const k = r.getAttribute('data-dim');
+        const def = dimDefs.find(d => d.key === k);
+        dims[k] = { name: def.name, score: Number(r.value), weight: def.weight, color: def.color };
+      });
+      const score = AIC_DB.computeGatekeeperScore(dims);
+      const rec = document.getElementById('recommendation').value;
+      const status = rec === 'PASS' ? 'Validated' : rec === 'CONDITIONAL' ? 'Validated' : rec === 'REJECT' ? 'Rejected' : 'Submitted';
+      const stage = rec === 'PASS' || rec === 'CONDITIONAL' ? 'Awaiting Council' : (rec === 'REJECT' ? 'Rejected' : 'Gatekeeper Review');
+      const patch = {
+        gatekeeperScore: score,
+        dimensions: dims,
+        status: status,
+        stage: stage,
+        confidenceLevel: document.getElementById('confidence').value,
+        decision: rec === 'REJECT' ? 'Rejected' : 'Pending',
+        gatekeeperNote: just.value,
+        gatekeeperConditions: document.getElementById('conditions').value || null,
+        scoredBy: user.name,
+        scoredAt: new Date().toISOString()
+      };
+      AIC_DB.updateInitiative(id, patch);
+      AIC_SEC.audit('GATEKEEPER_SCORE_SUBMITTED', { id, score, recommendation: rec }, 'INFO');
+      showToast('Score submitted — ' + score + ' (' + scoreLabel(score) + ')', 'success');
+      cache = AIC_DB.getInitiatives();
+      renderStats(); renderPending(); renderPipeline(); renderInsights(); buildPickList();
+    });
+
+    function renderInsights() {
+      // Domain bar
+      const domains = {};
+      cache.forEach(i => {
+        if (i.gatekeeperScore == null) return;
+        if (!domains[i.domain]) domains[i.domain] = { sum:0, count:0 };
+        domains[i.domain].sum += i.gatekeeperScore;
+        domains[i.domain].count += 1;
+      });
+      const labels = Object.keys(domains);
+      const scores = labels.map(l => Math.round(domains[l].sum / domains[l].count));
+      AIC_CHARTS.bar('chart-domain', labels, [{ label:'Avg score', data: scores, backgroundColor:'#6366f1' }]);
+
+      // Funnel
+      const stages = ['Draft','Submitted','Validated','Approved','Closed'];
+      const counts = stages.map(s => cache.filter(i => i.status === s).length);
+      AIC_CHARTS.bar('chart-funnel', stages, [{ label:'Count', data: counts, backgroundColor:['#64748b','#f59e0b','#3b82f6','#10b981','#8b5cf6'] }]);
+
+      // Heatmap
+      const heat = {};
+      cache.forEach(i => {
+        if (!heat[i.domain]) heat[i.domain] = { count:0, scoreSum:0, scored:0, budget:0, statuses:{} };
+        heat[i.domain].count += 1;
+        heat[i.domain].budget += (i.budgetRequested || 0);
+        heat[i.domain].statuses[i.status] = (heat[i.domain].statuses[i.status] || 0) + 1;
+        if (i.gatekeeperScore != null) { heat[i.domain].scoreSum += i.gatekeeperScore; heat[i.domain].scored += 1; }
+      });
+      const tb = document.getElementById('tbody-heat');
+      tb.innerHTML = Object.keys(heat).map(d => {
+        const h = heat[d];
+        const avg = h.scored ? Math.round(h.scoreSum/h.scored) : null;
+        const mix = Object.keys(h.statuses).map(s => '<span class="badge ' + statusClass(s) + '">' + s + ' ' + h.statuses[s] + '</span>').join(' ');
+        return '<tr><td><strong>' + AIC_SEC.escapeHtml(d) + '</strong></td><td>' + h.count + '</td><td>' + (avg != null ? '<span class="badge ' + scoreClass(avg) + '">' + avg + '</span>' : '—') + '</td><td>' + formatCurrency(h.budget,'USD',true) + '</td><td>' + mix + '</td></tr>';
+      }).join('');
+    }
+
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      const t = e.target.closest('.tab');
+      if (!t) return;
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + t.getAttribute('data-tab')).classList.add('active');
+    });
+
+    document.getElementById('btn-jump').addEventListener('click', () => {
+      const p = pending();
+      if (!p.length) { showToast('No initiatives pending review.', 'info'); return; }
+      document.querySelector('.tab[data-tab="score"]').click();
+      const sel = document.getElementById('score-pick');
+      sel.value = p[0].id;
+      sel.dispatchEvent(new Event('change'));
+    });
+
+    renderStats();
+    renderPending();
+    renderPipeline();
+    buildPickList();
+    renderInsights();
+  }
+});
+</script>
+
+</body>
+</html>
