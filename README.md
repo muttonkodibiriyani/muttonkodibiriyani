@@ -131,20 +131,63 @@ Script load order is **mandatory** in every protected page:
 
 The portal runs **100% in demo mode** out of the box — no Azure, no install, no credentials.
 
-```bash
-# Option 1 — npx (recommended)
-npx serve . -p 3000
-# then open http://localhost:3000
+> **Important: do not double-click `index.html`.** Browsers block `localStorage` and inter-page navigation when the protocol is `file://`. You must serve the folder over HTTP.
 
-# Option 2 — Python
+### Easiest — one command
+
+Open a terminal in the project folder and run:
+
+**macOS / Linux**
+```bash
+./start.sh
+```
+
+**Windows (Command Prompt or PowerShell)**
+```cmd
+start.bat
+```
+
+The script picks Node.js if available, otherwise Python 3, and opens your default browser at <http://localhost:3000/index.html>.
+
+### Manual alternatives
+
+```bash
+# Option A — npm (Node 18+)
+npm start
+
+# Option B — npx directly
+npx --yes serve . -p 3000
+
+# Option C — Python 3
 python3 -m http.server 3000
 ```
 
-Sign in via the **Continue as Demo User** button on the login page. Pick any of the 7 sample users to explore each role's experience.
+Then open **http://localhost:3000/** in your browser.
+
+### Sign in
+
+On the landing page, scroll to **"Continue as Demo User"**, pick a profile, and click the button. Each profile lands on its role's dashboard:
+
+| Demo user | Role | Lands on |
+|----------|------|----------|
+| Khalid Al-Mansouri | Platform Admin | `admin.html` |
+| Faisal Al-Tamimi | Investment Committee | `cxo-dashboard.html` |
+| Sarah Al-Rashidi | Strategy Reviewer | `strategy-dashboard.html` |
+| Dina Al-Saleh | Initiative Submitter | `initiator-dashboard.html` |
+| Omar Al-Hassan | Portfolio Viewer | `cxo-dashboard.html` |
 
 ### Verify the build
 
-Open `http://localhost:3000/_test.html` — automated assertions run on load and report passes/failures.
+Open <http://localhost:3000/_test.html> — automated assertions run on load and report passes/failures (16+ checks covering DB CRUD, RBAC, scoring formula, sanitization, CSRF, rate limit, formatters).
+
+### Troubleshooting
+
+- **Blank page / "Cannot GET /"** — make sure you opened `index.html` explicitly, e.g. `http://localhost:3000/index.html`. Some servers don't auto-serve the index file.
+- **Browser shows "file:// not supported"** — you double-clicked the HTML file. Use `./start.sh` or `npm start` instead.
+- **Port 3000 already in use** — pass a different port: `./start.sh 8080` or `npx serve . -p 8080`.
+- **Stale data after schema change** — open DevTools → Application → Local Storage → clear all, then reload. The DB version (`AIC_DB.VERSION`) auto-reseeds on mismatch.
+- **`npx: command not found`** — install Node.js 18+ from <https://nodejs.org>, or use the Python option.
+- **CORS errors in console** — only the Azure AD button needs an Azure tenant; ignore those in demo mode.
 
 ---
 

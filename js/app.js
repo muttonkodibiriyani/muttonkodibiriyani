@@ -10,7 +10,11 @@ function formatCurrency(value, currency, compact) {
   currency = currency || 'USD';
   try {
     const opts = { style:'currency', currency: currency, maximumFractionDigits: 0 };
-    if (compact) opts.notation = 'compact';
+    if (compact) {
+      opts.notation = 'compact';
+      opts.maximumFractionDigits = 2;
+      opts.minimumFractionDigits = 0;
+    }
     return new Intl.NumberFormat('en-US', opts).format(value);
   } catch (e) {
     return '$' + Number(value).toLocaleString();
