@@ -191,6 +191,18 @@ Open <http://localhost:3000/_test.html> — automated assertions run on load and
 
 ---
 
+
+## Enterprise Architecture Pack
+
+Detailed architecture and enterprise design documents are available under `docs/`:
+
+- `docs/ARCHITECTURE-HLD.md` — high-level architecture
+- `docs/ARCHITECTURE-LLD.md` — low-level component design
+- `docs/NETWORK-SECURITY-ARCHITECTURE.md` — network/security controls
+- `docs/API-DESIGN-ARCHITECTURE.md` — API contract architecture
+- `docs/DATABASE-DESIGN-ARCHITECTURE.md` — Cosmos data architecture
+- `docs/CTO-DEMO-FLOW.md` — role-based end-to-end CTO walkthrough
+
 ## Production deployment
 
 See [`AZURE-DEPLOY.md`](AZURE-DEPLOY.md) for the full 14-section runbook covering:
