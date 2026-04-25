@@ -1,0 +1,89 @@
+name: Azure Deploy
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+  issues: write
+env:
+  APP_LOCATION: /
+jobs:
+  secret-scan:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
+  codeql-scan:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with: { languages: javascript, queries: security-extended }
+      - uses: github/codeql-action/analyze@v3
+  dependency-audit:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm audit --audit-level=high --omit=dev || test ! -f package-lock.json
+  validate:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-bicep@v2
+      - run: az bicep build --file infra/main.bicep
+      - run: python -m json.tool staticwebapp.config.json >/dev/null
+      - run: test -f index.html && test -f js/app.js && test -f css/design-system.css
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+    needs: [secret-scan, codeql-scan, dependency-audit, validate]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with: { client-id: '${{ vars.AZURE_CLIENT_ID }}', tenant-id: '${{ vars.AZURE_TENANT_ID }}', subscription-id: '${{ vars.AZURE_SUBSCRIPTION_ID }}' }
+      - run: az deployment sub create --location uaenorth --template-file infra/main.bicep --parameters infra/parameters/staging.bicepparam
+      - run: printf "window.__AIC_ENV={AZURE_CLIENT_ID:'%s',AZURE_TENANT_ID:'%s',APIM_BASE_URL:'%s'};Object.freeze(window.__AIC_ENV);" "${{ vars.AZURE_CLIENT_ID }}" "${{ vars.AZURE_TENANT_ID }}" "${{ vars.APIM_BASE_URL }}" > env-config.js
+      - uses: Azure/static-web-apps-deploy@v1
+        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: upload, app_location: '/', output_location: '/' }
+      - run: curl -fsSI "${{ vars.STAGING_URL }}/index.html"
+  deploy-preview:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    needs: [secret-scan, codeql-scan, dependency-audit, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Azure/static-web-apps-deploy@v1
+        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: upload, app_location: '/', output_location: '/' }
+  close-preview:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Azure/static-web-apps-deploy@v1
+        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: close }
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: [secret-scan, codeql-scan, dependency-audit, validate]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with: { client-id: '${{ vars.AZURE_CLIENT_ID }}', tenant-id: '${{ vars.AZURE_TENANT_ID }}', subscription-id: '${{ vars.AZURE_SUBSCRIPTION_ID }}' }
+      - run: az deployment sub create --location uaenorth --template-file infra/main.bicep --parameters infra/parameters/production.bicepparam
+      - run: printf "window.__AIC_ENV={AZURE_CLIENT_ID:'%s',AZURE_TENANT_ID:'%s',APIM_BASE_URL:'%s'};Object.freeze(window.__AIC_ENV);" "${{ vars.AZURE_CLIENT_ID }}" "${{ vars.AZURE_TENANT_ID }}" "${{ vars.APIM_BASE_URL }}" > env-config.js
+      - uses: Azure/static-web-apps-deploy@v1
+        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PRODUCTION }}', action: upload, app_location: '/', output_location: '/' }
+      - run: curl -fsSI "${{ vars.PRODUCTION_URL }}/index.html" | tee headers.txt && grep -i x-frame-options headers.txt
+      - if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: github.rest.issues.create({owner:context.repo.owner,repo:context.repo.repo,title:'Production deployment failed - rollback required',body:'Review the failed run and redeploy the prior successful artifact.'})

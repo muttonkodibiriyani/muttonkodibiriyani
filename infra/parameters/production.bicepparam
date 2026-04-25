@@ -1,0 +1,8 @@
+using '../main.bicep'
+param environment = 'production'
+param location = 'uaenorth'
+param secondaryLocation = 'uaecentral'
+param projectName = 'aic'
+param tenantId = '__AZURE_TENANT_ID__'
+param aadClientId = '__AZURE_CLIENT_ID__'
+param alertEmail = 'aic-support@alshaya.com'
