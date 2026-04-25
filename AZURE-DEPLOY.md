@@ -155,17 +155,19 @@ git push -u origin main
 
 Set these as **repository secrets** (Settings → Secrets and variables → Actions). All secrets should be rotated on a defined schedule.
 
-| Secret name | Source | Rotation |
-|------------|--------|----------|
-| `AZURE_CLIENT_ID` | App registration client ID | Annual |
-| `AZURE_TENANT_ID` | Entra tenant ID | Never |
-| `AZURE_SUBSCRIPTION_ID` | Target subscription | On change |
-| `SWA_DEPLOY_TOKEN_STAGING` | SWA → Manage deployment token | 90 days |
-| `SWA_DEPLOY_TOKEN_PROD` | SWA prod deployment token | 90 days |
-| `APIM_BASE_URL_STAGING` | Output from staging deploy | On change |
-| `APIM_BASE_URL_PROD` | Output from prod deploy | On change |
-| `APPINSIGHTS_CONNSTR_STAGING` | App Insights → Properties | 90 days |
-| `APPINSIGHTS_CONNSTR_PROD` | App Insights → Properties | 90 days |
+
+| Secret name                   | Source                        | Rotation  |
+| ----------------------------- | ----------------------------- | --------- |
+| `AZURE_CLIENT_ID`             | App registration client ID    | Annual    |
+| `AZURE_TENANT_ID`             | Entra tenant ID               | Never     |
+| `AZURE_SUBSCRIPTION_ID`       | Target subscription           | On change |
+| `SWA_DEPLOY_TOKEN_STAGING`    | SWA → Manage deployment token | 90 days   |
+| `SWA_DEPLOY_TOKEN_PROD`       | SWA prod deployment token     | 90 days   |
+| `APIM_BASE_URL_STAGING`       | Output from staging deploy    | On change |
+| `APIM_BASE_URL_PROD`          | Output from prod deploy       | On change |
+| `APPINSIGHTS_CONNSTR_STAGING` | App Insights → Properties     | 90 days   |
+| `APPINSIGHTS_CONNSTR_PROD`    | App Insights → Properties     | 90 days   |
+
 
 OIDC federated identity means **no Azure password or service principal secret is ever stored in GitHub**.
 
@@ -306,12 +308,14 @@ AzureDiagnostics
 
 ### Common ops tasks
 
-| Task | Command / Path |
-|------|---------------|
-| Rotate Cosmos master key | `az cosmosdb keys regenerate -n <acct> -g <rg> --key-kind primary`, then update Key Vault secret |
-| Restart APIM (no downtime) | `az apim update -n <name> -g <rg> --set sku.name=Standard` |
-| Export audit logs | Admin Console → Audit Log → Export CSV |
-| Scale up SWA | Already on Standard — no action |
+
+| Task                       | Command / Path                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------ |
+| Rotate Cosmos master key   | `az cosmosdb keys regenerate -n <acct> -g <rg> --key-kind primary`, then update Key Vault secret |
+| Restart APIM (no downtime) | `az apim update -n <name> -g <rg> --set sku.name=Standard`                                       |
+| Export audit logs          | Admin Console → Audit Log → Export CSV                                                           |
+| Scale up SWA               | Already on Standard — no action                                                                  |
+
 
 ---
 
@@ -342,17 +346,19 @@ For Cosmos data corruption: use **Continuous Backup** (Cosmos → Point-in-Time 
 
 ## 14. Cost estimate
 
-| Resource | Tier | Approx monthly cost (USD) |
-|----------|------|--------------------------|
-| Static Web App | Standard | $9 |
-| API Management | Standard (1 unit) | $145 |
-| Cosmos DB | 4000 RU/s autoscale, geo-redundant | $80–120 |
-| Key Vault | Premium | $5 |
-| Log Analytics | 5 GB ingestion cap | $12 |
-| App Insights | Workspace-based | included in LA |
-| Storage | GRS, < 50 GB | $5 |
-| Monitor alerts | 3 metric rules | $3 |
-| **Total** | | **~$259–299/month** |
+
+| Resource       | Tier                               | Approx monthly cost (USD) |
+| -------------- | ---------------------------------- | ------------------------- |
+| Static Web App | Standard                           | $9                        |
+| API Management | Standard (1 unit)                  | $145                      |
+| Cosmos DB      | 4000 RU/s autoscale, geo-redundant | $80–120                   |
+| Key Vault      | Premium                            | $5                        |
+| Log Analytics  | 5 GB ingestion cap                 | $12                       |
+| App Insights   | Workspace-based                    | included in LA            |
+| Storage        | GRS, < 50 GB                       | $5                        |
+| Monitor alerts | 3 metric rules                     | $3                        |
+| **Total**      |                                    | **~$259–299/month**       |
+
 
 For staging (Developer APIM, single-region Cosmos): ~$70/month.
 
@@ -370,3 +376,4 @@ window.__AIC_ENV = {
   APPLICATIONINSIGHTS_CONNECTION_STRING: 'InstrumentationKey=…'
 };
 ```
+
