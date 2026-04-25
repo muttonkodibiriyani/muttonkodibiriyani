@@ -203,6 +203,10 @@ Detailed architecture and enterprise design documents are available under `docs/
 - `docs/DATABASE-DESIGN-ARCHITECTURE.md` — Cosmos data architecture
 - `docs/CTO-DEMO-FLOW.md` — role-based end-to-end CTO walkthrough
 
+- `docs/CTO-CEO-ACCESS-PACK.md` — executive access pack + demo credentials
+- `docs/DEPLOY-FROM-ANY-NETWORK.md` — publish/share runbook
+- `env-config.example.js` — runtime env injection example
+
 ## Production deployment
 
 See [`AZURE-DEPLOY.md`](AZURE-DEPLOY.md) for the full 14-section runbook covering:
