@@ -760,16 +760,15 @@ input[type=checkbox], input[type=radio] {
    ========================================================================== */
 .login-shell {
   display: grid;
-  grid-template-columns: 55fr 45fr;
+  grid-template-columns: 52fr 48fr;
   min-height: 100vh;
 }
 .login-hero {
   background:
-    radial-gradient(circle at 14% 18%, rgba(255,154,0,0.26), transparent 45%),
-    radial-gradient(circle at 82% 22%, rgba(76,201,240,0.26), transparent 45%),
-    radial-gradient(circle at 50% 85%, rgba(114,9,183,0.20), transparent 48%),
-    linear-gradient(132deg, #5f0f40 0%, #9a031e 30%, #fb8b24 68%, #0b7285 100%);
-  padding: 48px;
+    radial-gradient(circle at 18% 22%, rgba(59,130,246,0.18), transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(14,116,144,0.14), transparent 50%),
+    linear-gradient(140deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%);
+  padding: 42px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -791,8 +790,7 @@ input[type=checkbox], input[type=radio] {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(2, 6, 23, 0.22), rgba(2, 6, 23, 0.35)),
-    radial-gradient(circle at 65% 15%, rgba(255,255,255,0.12), transparent 36%);
+    linear-gradient(180deg, rgba(2, 6, 23, 0.2), rgba(2, 6, 23, 0.32));
   pointer-events: none;
 }
 .login-brand {
@@ -803,48 +801,48 @@ input[type=checkbox], input[type=radio] {
   gap: 12px;
 }
 .login-brand .logo-mark {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ff6b35, #f72585);
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 16px;
   box-shadow: 0 10px 26px rgba(17,24,39,0.35);
 }
 .login-brand h2 {
   margin: 0;
-  font-size: 34px;
+  font-size: 29px;
   line-height: 1.1;
-  font-weight: 800;
-  color: #fff7ed;
-  text-shadow: 0 4px 16px rgba(2, 6, 23, 0.35);
+  font-weight: 700;
+  color: #f8fafc;
+  text-shadow: 0 2px 10px rgba(2, 6, 23, 0.35);
 }
 .login-brand .brand-sub {
-  font-size: 12px;
-  color: rgba(255,247,237,0.92);
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: rgba(226,232,240,0.9);
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   margin-top: 2px;
 }
 .login-headline { position: relative; z-index: 1; max-width: 560px; }
 .login-headline h1 {
-  font-size: 66px;
-  line-height: 1.04;
-  font-weight: 800;
-  margin: 0 0 20px;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  text-shadow: 0 10px 26px rgba(2, 6, 23, 0.45);
+  font-size: 47px;
+  line-height: 1.1;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  text-shadow: 0 6px 18px rgba(2, 6, 23, 0.38);
 }
 .login-headline .tagline {
-  font-size: 24px;
-  line-height: 1.35;
-  font-weight: 700;
-  margin: 0 0 18px;
-  color: #fff7ed;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 500;
+  margin: 0 0 20px;
+  color: rgba(226,232,240,0.96);
 }
 .login-headline .sub-tagline {
   font-size: 21px;
@@ -864,24 +862,24 @@ input[type=checkbox], input[type=radio] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .feature-list li {
   display: flex;
   align-items: center;
-  gap: 13px;
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: rgba(255,247,237,0.97);
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: rgba(241,245,249,0.95);
 }
 .feature-list .feat-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: rgba(255,247,237,0.2);
-  color: #fff7ed;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: rgba(219,234,254,0.2);
+  color: #dbeafe;
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 .benchmark-card {
@@ -915,18 +913,18 @@ input[type=checkbox], input[type=radio] {
   font-size: 12px;
 }
 .benchmarks-strip {
-  background: rgba(17,24,39,0.22);
-  border: 1px solid rgba(255,247,237,0.35);
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,0.35);
+  border: 1px solid rgba(148,163,184,0.42);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(2px);
 }
 .benchmarks-label {
-  color: rgba(255,247,237,0.96);
+  color: rgba(226,232,240,0.95);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .benchmarks-grid {
   display: grid;
@@ -934,21 +932,21 @@ input[type=checkbox], input[type=radio] {
   gap: 10px;
 }
 .benchmark-item .metric {
-  color: #fff7ed;
-  font-size: 30px;
-  font-weight: 800;
+  color: #f8fafc;
+  font-size: 24px;
+  font-weight: 700;
   line-height: 1.05;
 }
 .benchmark-item .metric-sub {
-  color: rgba(255,247,237,0.9);
-  font-size: 13px;
+  color: rgba(226,232,240,0.9);
+  font-size: 11px;
 }
 .login-hero .text-muted { color: rgba(255,255,255,0.82) !important; }
 .login-foot {
   position: relative;
   z-index: 1;
-  font-size: 12px;
-  color: rgba(255,247,237,0.86);
+  font-size: 11px;
+  color: rgba(203,213,225,0.85);
   display: flex;
   justify-content: space-between;
 }
@@ -1036,11 +1034,11 @@ input[type=checkbox], input[type=radio] {
   .main-wrap { margin-left: 0; }
   .login-shell { grid-template-columns: 1fr; }
   .login-hero { padding: 28px; min-height: auto; }
-  .login-brand h2 { font-size: 24px; }
-  .login-hero h1 { font-size: 44px; }
-  .login-headline .tagline { font-size: 20px; }
-  .login-headline .sub-tagline { font-size: 17px; }
-  .feature-list li { font-size: 18px; }
+  .login-brand h2 { font-size: 22px; }
+  .login-hero h1 { font-size: 36px; }
+  .login-headline .tagline { font-size: 16px; }
+  .login-headline .sub-tagline { font-size: 14px; }
+  .feature-list li { font-size: 14px; }
   .benchmarks-grid { grid-template-columns: 1fr; }
   .login-foot { gap: 8px; flex-direction: column; }
   .login-panel { padding: 28px; }
