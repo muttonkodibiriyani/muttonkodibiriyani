@@ -218,6 +218,7 @@ initPage({
           '<div class="card-header"><h3 class="card-title">' + AIC_SEC.escapeHtml(d.title || '(untitled draft)') + '</h3>' +
             '<span class="badge badge-warning">' + pct + '% complete</span></div>' +
           '<div class="text-sm text-muted mb-md">Last saved ' + timeAgo(d.savedAt) + '</div>' +
+          (d.projectedGatekeeperScore != null ? '<div class="mb-md"><span class="badge ' + scoreClass(d.projectedGatekeeperScore) + '">Projected GK: ' + d.projectedGatekeeperScore + ' (' + AIC_SEC.escapeHtml(d.scoreBand || scoreLabel(d.projectedGatekeeperScore)) + ')</span></div>' : '') +
           '<div class="progress-bar mb-md"><div class="progress-bar-fill" style="width:' + pct + '%"></div></div>' +
           '<div class="flex gap-sm">' +
             '<a href="submit-initiative.html?draft=' + AIC_SEC.encodeAttr(d.id) + '" class="btn btn-primary btn-sm"><i class="fas fa-pen"></i> Resume</a>' +
@@ -231,6 +232,21 @@ initPage({
           if (!ok) return;
           AIC_DB.deleteDraft(id);
           showToast('Draft deleted', 'success');
+          renderDrafts();
+        });
+      });
+
+      grid.querySelectorAll('[data-submit-draft]').forEach(b => {
+        b.addEventListener('click', async () => {
+          const id = b.getAttribute('data-submit-draft');
+          const ok = await showConfirm('Submit prefilled draft', 'Submit this prefilled draft directly into Gatekeeper review so Strategy can score it?', 'Submit');
+          if (!ok) return;
+          const created = AIC_DB.submitDraftAsInitiative(id, user.id);
+          if (!created) { showToast('Unable to submit draft', 'error'); return; }
+          showToast('Draft submitted as ' + created.id, 'success');
+          cache = AIC_DB.getInitiatives({ submittedById: user.id });
+          renderStats();
+          renderMine();
           renderDrafts();
         });
       });

@@ -270,6 +270,19 @@ The Cosmos DB master key is stored in Key Vault and **never** sent to the browse
 
 ---
 
+
+## Where database design is created and hosted
+
+- **Database design/specification:**
+  - `docs/DATABASE-DESIGN-ARCHITECTURE.md`
+  - `infra/modules/cosmos-db.bicep` (container schema + partition keys + TTL + backup)
+
+- **Current live hosting mode (Vercel demo):**
+  - Uses browser `localStorage` as demo datastore (no cloud DB required)
+
+- **Enterprise production hosting mode (Azure):**
+  - Azure Cosmos DB (SQL API), deployed by Bicep when Azure path is enabled.
+
 ## Support
 
 - Email: aic-support@alshaya.com

@@ -6,7 +6,7 @@
    ========================================================================== */
 
 const AIC_DB = (function () {
-  const VERSION = '2.1.0';
+  const VERSION = '2.1.1';
   const KEYS = {
     initiatives: 'aic_db_initiatives',
     users:       'aic_db_users',
@@ -334,6 +334,137 @@ const AIC_DB = (function () {
     ];
   }
 
+  function getSampleDrafts() {
+    const common = {
+      submittedById: 'usr-001',
+      submittedBy: 'Dina Al-Saleh',
+      step: 8,
+      acknowledged: true
+    };
+    return [
+      {
+        id: 'DRAFT-LOW-45',
+        title: 'Legacy POS Data Lake Consolidation — Kuwait',
+        domain: 'Digital Operations',
+        priority: 'Efficiency',
+        sponsor: 'Operations Director',
+        country: 'Kuwait',
+        description: 'Consolidate 5 legacy POS exports into one warehouse.',
+        problemStatement: 'Manual data handling causes delayed reports and low decision quality.',
+        customerEvidence: 'Finance and store ops rely on weekly spreadsheet consolidation with frequent errors.',
+        budgetRequested: 320000,
+        annualBenefit: 65000,
+        payback: 52,
+        primaryMetric: 'Reporting cycle time',
+        bearCase: '18 months later benefits are limited due to low adoption and integration delays.',
+        projectedGatekeeperScore: 45,
+        scoreBand: 'Low',
+        savedAt: '2026-04-20T09:10:00Z',
+        ...common
+      },
+      {
+        id: 'DRAFT-LOWMID-58',
+        title: 'Store Tablet Refresh Program — GCC',
+        domain: 'In-Store Technology',
+        priority: 'Efficiency',
+        sponsor: 'Retail Ops Head',
+        country: 'GCC',
+        description: 'Replace aging tablets used by floor staff in 120 stores.',
+        problemStatement: 'Frequent device failures impact customer assistance and queue times.',
+        customerEvidence: 'Service desk tickets increased 28% in last two quarters.',
+        budgetRequested: 480000,
+        annualBenefit: 140000,
+        payback: 34,
+        primaryMetric: 'Device uptime %',
+        bearCase: 'Operational disruption remains because process redesign was not completed.',
+        projectedGatekeeperScore: 58,
+        scoreBand: 'Low-Mid',
+        savedAt: '2026-04-21T10:20:00Z',
+        ...common
+      },
+      {
+        id: 'DRAFT-MID-64',
+        title: 'Regional Workforce Scheduling Optimizer',
+        domain: 'HR & People',
+        priority: 'Efficiency',
+        sponsor: 'HR Transformation Lead',
+        country: 'UAE, KSA',
+        description: 'Optimize shift scheduling to reduce overtime leakage.',
+        problemStatement: 'Current scheduler cannot align traffic patterns with staffing.',
+        customerEvidence: 'Overtime spend variance exceeds policy thresholds in 42 stores.',
+        budgetRequested: 610000,
+        annualBenefit: 260000,
+        payback: 29,
+        primaryMetric: 'Overtime cost per store',
+        bearCase: 'Expected savings not sustained due to change-management gaps.',
+        projectedGatekeeperScore: 64,
+        scoreBand: 'Conditional',
+        savedAt: '2026-04-22T11:25:00Z',
+        ...common
+      },
+      {
+        id: 'DRAFT-MIDHIGH-72',
+        title: 'Returns Fraud Detection for Omnichannel',
+        domain: 'Ecommerce',
+        priority: 'Strategic',
+        sponsor: 'Chief Risk Officer',
+        country: 'UAE, KSA, Kuwait',
+        description: 'Introduce anomaly detection for suspicious return behavior.',
+        problemStatement: 'Rising abuse of return policies reduces margin and inventory quality.',
+        customerEvidence: 'Fraud analytics team estimates 2.1M USD annual leakage.',
+        budgetRequested: 770000,
+        annualBenefit: 520000,
+        payback: 18,
+        primaryMetric: 'Fraudulent return rate %',
+        bearCase: 'False positives hurt customer experience without calibrated model governance.',
+        projectedGatekeeperScore: 72,
+        scoreBand: 'Near Pass',
+        savedAt: '2026-04-23T08:40:00Z',
+        ...common
+      },
+      {
+        id: 'DRAFT-HIGH-81',
+        title: 'Cross-Brand Customer Identity Resolution',
+        domain: 'Customer Loyalty',
+        priority: 'Strategic',
+        sponsor: 'Chief Commercial Officer',
+        country: 'GCC',
+        description: 'Unify customer identity graph across major brands for loyalty and CRM.',
+        problemStatement: 'Fragmented IDs prevent cross-brand personalization and retention actions.',
+        customerEvidence: 'Only 7% of top-tier customers recognized across multiple brands.',
+        budgetRequested: 1180000,
+        annualBenefit: 930000,
+        payback: 15,
+        primaryMetric: 'Cross-brand recognized customer %',
+        bearCase: 'Identity match quality underperforms due to data quality issues.',
+        projectedGatekeeperScore: 81,
+        scoreBand: 'Pass',
+        savedAt: '2026-04-24T14:05:00Z',
+        ...common
+      },
+      {
+        id: 'DRAFT-HIGH-93',
+        title: 'AI Basket Recommendation Engine — Flagship Brands',
+        domain: 'Pricing & Revenue Management',
+        priority: 'Strategic',
+        sponsor: 'Chief Digital Officer',
+        country: 'UAE, KSA',
+        description: 'Deploy recommendation engine to drive basket uplift and attachment rate.',
+        problemStatement: 'Low attachment rates constrain digital growth despite high traffic.',
+        customerEvidence: 'A/B benchmark from comparable rollout delivered +9.5% basket value.',
+        budgetRequested: 990000,
+        annualBenefit: 1450000,
+        payback: 9,
+        primaryMetric: 'Average order value uplift %',
+        bearCase: 'Benefits diluted if taxonomy and product metadata cleanup is not completed.',
+        projectedGatekeeperScore: 93,
+        scoreBand: 'Strong Pass',
+        savedAt: '2026-04-25T08:15:00Z',
+        ...common
+      }
+    ];
+  }
+
   // --- public API ---
   const api = {};
 
@@ -343,7 +474,7 @@ const AIC_DB = (function () {
       console.debug('[AIC DB] seeding sample data — version ' + VERSION);
       write(KEYS.initiatives, getSampleInitiatives());
       write(KEYS.users, getSampleUsers());
-      write(KEYS.drafts, []);
+      write(KEYS.drafts, getSampleDrafts());
       write(KEYS.audit, []);
       write(KEYS.version, VERSION);
     }
@@ -441,6 +572,63 @@ const AIC_DB = (function () {
     let list = read(KEYS.drafts, []);
     list = list.filter(d => d.id !== id);
     write(KEYS.drafts, list);
+  };
+
+
+  api.submitDraftAsInitiative = function (draftId, submittedById) {
+    const draft = api.getDraft(draftId);
+    if (!draft) return null;
+    const user = api.getUserById(submittedById || draft.submittedById);
+    const created = api.createInitiative({
+      title: draft.title,
+      domain: draft.domain,
+      status: 'Submitted',
+      stage: 'Gatekeeper Review',
+      sponsor: draft.sponsor,
+      submittedBy: user ? user.name : (draft.submittedBy || 'Initiator'),
+      submittedById: submittedById || draft.submittedById,
+      country: draft.country,
+      brands: draft.brands ? String(draft.brands).split(',').map(s => s.trim()).filter(Boolean) : (draft.brands || []),
+      priority: draft.priority || 'Strategic',
+      description: draft.description,
+      problemStatement: draft.problemStatement,
+      customerEvidence: draft.customerEvidence,
+      proposedSolution: draft.description,
+      financialCase: draft.financialCase || '',
+      budgetRequested: Number(draft.budgetRequested) || 0,
+      budgetApproved: 0,
+      budgetSpent: 0,
+      decision: 'Pending',
+      confidenceLevel: 'Medium',
+      bearCase: draft.bearCase,
+      measurementPlan: {
+        primaryMetric: draft.primaryMetric,
+        baselineValue: draft.primaryBaseline || '',
+        targetValue: draft.primaryTarget || '',
+        secondaryMetrics: [draft.secondary1, draft.secondary2, draft.secondary3].filter(Boolean),
+        leadingIndicators: draft.leadingIndicators || '',
+        dataSource: draft.dataSource || '',
+        attributionMethod: draft.attributionMethod || '',
+        accountableOwner: draft.accountableOwner || '',
+        reviewDates: draft.firstReviewDate || ''
+      },
+      stageGates: (draft.stageGates || []).map((g, idx) => ({
+        stage: g.stage || ('Stage ' + idx),
+        budget: idx === 0 ? Number(draft.stage0 || 0) : idx === 1 ? Number(draft.stage1 || 0) : idx === 2 ? Number(draft.stage2 || 0) : Number(draft.stage3 || 0),
+        spent: 0,
+        status: idx === 0 ? 'Pending' : 'Locked',
+        date: g.targetDate || '',
+        exitCriteria: (g.criteria || []).filter(Boolean)
+      })),
+      draftMeta: {
+        sourceDraftId: draft.id,
+        projectedGatekeeperScore: draft.projectedGatekeeperScore || null,
+        scoreBand: draft.scoreBand || null
+      }
+    });
+    api.deleteDraft(draftId);
+    api.addAuditEvent({ action:'DRAFT_SUBMITTED', data:{ draftId: draftId, initiativeId: created.id }, severity:'INFO' });
+    return created;
   };
 
   // --- users ---
