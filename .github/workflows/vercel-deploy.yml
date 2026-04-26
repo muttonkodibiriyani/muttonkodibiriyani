@@ -11,6 +11,7 @@ on:
         default: preview
   push:
     branches:
+      - main
       - cursor/build-aic-portal-7019
 
 jobs:
