@@ -768,7 +768,7 @@ input[type=checkbox], input[type=radio] {
     radial-gradient(circle at 18% 22%, rgba(59,130,246,0.18), transparent 48%),
     radial-gradient(circle at 78% 72%, rgba(14,116,144,0.14), transparent 50%),
     linear-gradient(140deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%);
-  padding: 42px;
+  padding: 36px 40px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -814,11 +814,11 @@ input[type=checkbox], input[type=radio] {
 }
 .login-brand h2 {
   margin: 0;
-  font-size: 29px;
+  font-size: 25px;
   line-height: 1.1;
   font-weight: 700;
   color: #f8fafc;
-  text-shadow: 0 2px 10px rgba(2, 6, 23, 0.35);
+  text-shadow: 0 1px 6px rgba(2, 6, 23, 0.32);
 }
 .login-brand .brand-sub {
   font-size: 11px;
@@ -829,27 +829,27 @@ input[type=checkbox], input[type=radio] {
 }
 .login-headline { position: relative; z-index: 1; max-width: 560px; }
 .login-headline h1 {
-  font-size: 47px;
-  line-height: 1.1;
+  font-size: 42px;
+  line-height: 1.12;
   font-weight: 700;
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   color: #f8fafc;
-  letter-spacing: -0.01em;
-  text-shadow: 0 6px 18px rgba(2, 6, 23, 0.38);
+  letter-spacing: -0.005em;
+  text-shadow: 0 4px 12px rgba(2, 6, 23, 0.32);
 }
 .login-headline .tagline {
-  font-size: 18px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.45;
   font-weight: 500;
-  margin: 0 0 20px;
+  margin: 0 0 10px;
   color: rgba(226,232,240,0.96);
 }
 .login-headline .sub-tagline {
-  font-size: 21px;
-  line-height: 1.4;
-  color: rgba(255,247,237,0.96);
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(226,232,240,0.92);
   max-width: 500px;
-  margin: 0 0 32px;
+  margin: 0 0 18px;
 }
 .hero-intro {
   font-size: 16px;
@@ -862,24 +862,24 @@ input[type=checkbox], input[type=radio] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .feature-list li {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.4;
   color: rgba(241,245,249,0.95);
 }
 .feature-list .feat-icon {
-  width: 30px; height: 30px;
+  width: 28px; height: 28px;
   border-radius: 8px;
   background: rgba(219,234,254,0.2);
   color: #dbeafe;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 .benchmark-card {
@@ -916,39 +916,40 @@ input[type=checkbox], input[type=radio] {
   background: rgba(15,23,42,0.35);
   border: 1px solid rgba(148,163,184,0.42);
   border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
   backdrop-filter: blur(2px);
 }
 .benchmarks-label {
   color: rgba(226,232,240,0.95);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .benchmarks-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 .benchmark-item .metric {
   color: #f8fafc;
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   line-height: 1.05;
 }
 .benchmark-item .metric-sub {
   color: rgba(226,232,240,0.9);
-  font-size: 11px;
+  font-size: 10px;
 }
 .login-hero .text-muted { color: rgba(255,255,255,0.82) !important; }
 .login-foot {
   position: relative;
   z-index: 1;
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(203,213,225,0.85);
   display: flex;
   justify-content: space-between;
+  margin-top: 12px;
 }
 
 .login-panel {
@@ -1033,11 +1034,11 @@ input[type=checkbox], input[type=radio] {
   .sidebar.open { transform: translateX(0); }
   .main-wrap { margin-left: 0; }
   .login-shell { grid-template-columns: 1fr; }
-  .login-hero { padding: 28px; min-height: auto; }
+  .login-hero { padding: 26px; min-height: auto; }
   .login-brand h2 { font-size: 22px; }
-  .login-hero h1 { font-size: 36px; }
-  .login-headline .tagline { font-size: 16px; }
-  .login-headline .sub-tagline { font-size: 14px; }
+  .login-hero h1 { font-size: 34px; }
+  .login-headline .tagline { font-size: 15px; }
+  .login-headline .sub-tagline { font-size: 13px; }
   .feature-list li { font-size: 14px; }
   .benchmarks-grid { grid-template-columns: 1fr; }
   .login-foot { gap: 8px; flex-direction: column; }
