@@ -331,18 +331,118 @@ const AIC_DB = (function () {
     ];
   }
 
+  function getSampleDrafts() {
+    const baseDate = new Date().toISOString();
+    function draft(idx, opts) {
+      return Object.assign({
+        id: 'DRAFT-SEED-' + idx,
+        submittedById: 'usr-001',
+        submittedBy: 'Dina Al-Saleh',
+        sponsor: 'Rania Al-Khoury (CCO)',
+        country: 'UAE',
+        priority: 'Strategic',
+        savedAt: baseDate,
+        stageGates: [],
+        attachments: []
+      }, opts);
+    }
+    return [
+      draft(1, {
+        title: 'AI Concierge for VS UAE Flagship',
+        domain: 'In-Store Technology',
+        brands: "Victoria's Secret",
+        description: 'Tablet-based AI styling assistant for in-store associates.',
+        problemStatement: 'Limited associate fashion expertise during peak hours leads to lower conversion.',
+        customerEvidence: 'In-store NPS shows 12% drop on weekends.',
+        budgetRequested: 280000,
+        projectedGatekeeperScore: 45,
+        scoreBand: 'Low'
+      }),
+      draft(2, {
+        title: 'Mobile Returns Self-Service — H&M GCC',
+        domain: 'Ecommerce',
+        brands: 'H&M',
+        description: 'In-app returns flow with auto-label and refund tracking.',
+        problemStatement: 'Manual returns drive support cost up 22% YoY.',
+        customerEvidence: 'Support tickets show returns are top-3 contact reason.',
+        budgetRequested: 410000,
+        projectedGatekeeperScore: 58,
+        scoreBand: 'Low-Mid'
+      }),
+      draft(3, {
+        title: 'Loyalty Cross-Brand Pilot — Mothercare + ELC',
+        domain: 'Customer Loyalty',
+        brands: 'Mothercare, Early Learning Centre',
+        description: 'Pilot for shared loyalty between two adjacent brands.',
+        problemStatement: 'Customer overlap is 38% but loyalty is siloed.',
+        customerEvidence: 'CDP shows 38% household overlap.',
+        budgetRequested: 520000,
+        projectedGatekeeperScore: 64,
+        scoreBand: 'Conditional'
+      }),
+      draft(4, {
+        title: 'Demand Forecasting — Bath & Body Works',
+        domain: 'Retail Supply Chain',
+        brands: 'Bath & Body Works',
+        description: 'ML-driven SKU demand forecasting for seasonal collections.',
+        problemStatement: 'Stockouts on hero SKUs reach 18% in Q4.',
+        customerEvidence: 'POS data confirms repeat 18% Q4 stockouts.',
+        budgetRequested: 760000,
+        projectedGatekeeperScore: 72,
+        scoreBand: 'Near Pass'
+      }),
+      draft(5, {
+        title: 'Unified OMS for Footwear Brands',
+        domain: 'Ecommerce',
+        brands: 'Aldo, Charles & Keith',
+        description: 'Consolidate two OMS instances into one for footwear.',
+        problemStatement: 'Operating 2 OMS adds 31% TCO and slow change cycles.',
+        customerEvidence: 'Engineering audit Q1 2026.',
+        budgetRequested: 980000,
+        projectedGatekeeperScore: 81,
+        scoreBand: 'Pass'
+      }),
+      draft(6, {
+        title: 'Retail Analytics Datalake — All Brands',
+        domain: 'Data Platform',
+        brands: 'All Brands',
+        description: 'Unified retail analytics datalake on Azure Synapse.',
+        problemStatement: 'Each brand maintains its own siloed analytics stack.',
+        customerEvidence: 'CIO survey Q1 2026 confirms duplication.',
+        budgetRequested: 1450000,
+        projectedGatekeeperScore: 93,
+        scoreBand: 'Strong Pass'
+      })
+    ];
+  }
+
   // --- public API ---
   const api = {};
 
   api.init = function () {
-    const existing = read(KEYS.version, null);
-    if (existing !== VERSION) {
-      console.debug('[AIC DB] seeding sample data — version ' + VERSION);
-      write(KEYS.initiatives, getSampleInitiatives());
-      write(KEYS.users, getSampleUsers());
-      write(KEYS.drafts, getSampleDrafts());
-      write(KEYS.audit, []);
-      write(KEYS.version, VERSION);
+    try {
+      const existing = read(KEYS.version, null);
+      const usersExisting = read(KEYS.users, []);
+      const needsSeed = existing !== VERSION || !Array.isArray(usersExisting) || usersExisting.length === 0;
+      if (needsSeed) {
+        console.debug('[AIC DB] seeding sample data — version ' + VERSION);
+        write(KEYS.initiatives, getSampleInitiatives());
+        write(KEYS.users, getSampleUsers());
+        write(KEYS.drafts, getSampleDrafts());
+        write(KEYS.audit, []);
+        write(KEYS.version, VERSION);
+      }
+    } catch (e) {
+      console.warn('[AIC DB] init failed, attempting safe reseed', e);
+      try {
+        write(KEYS.users, getSampleUsers());
+        write(KEYS.initiatives, getSampleInitiatives());
+        write(KEYS.drafts, []);
+        write(KEYS.audit, []);
+        write(KEYS.version, VERSION);
+      } catch (inner) {
+        console.error('[AIC DB] safe reseed failed', inner);
+      }
     }
   };
 
