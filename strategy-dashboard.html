@@ -92,6 +92,7 @@
               <button id="btn-run-sharks" class="btn btn-secondary btn-sm" disabled><i class="fas fa-wand-magic-sparkles"></i> Run Shark Council Score</button>
             </div>
             <div id="shark-summary" class="text-xs text-muted">Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.</div>
+            <div id="shark-confidence" class="mt-sm"></div>
             <div id="shark-preview" class="mt-sm"></div>
           </div>
           <div class="form-group">
@@ -281,6 +282,7 @@ initPage({
       buildSliders(init);
       sharkModel = null;
       document.getElementById('shark-preview').innerHTML = '';
+      document.getElementById('shark-confidence').innerHTML = '';
       document.getElementById('shark-summary').textContent = 'Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.';
       document.getElementById('btn-run-sharks').disabled = !id;
       document.getElementById('btn-submit-score').disabled = !id;
@@ -300,36 +302,120 @@ initPage({
       return dims;
     }
 
+    function scoreBand(score) {
+      if (score >= 85) return 'Strong Invest';
+      if (score >= 75) return 'Invest';
+      if (score >= 60) return 'Conditional';
+      return 'No Invest';
+    }
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function deterministicNoise(seed, min, max) {
+      const x = Math.sin(seed * 12.9898) * 43758.5453;
+      const frac = x - Math.floor(x);
+      return Math.round(min + frac * (max - min));
+    }
+
+    function buildSharkCouncilModel(initiativeId, dims, gatekeeperScore) {
+      const d1 = dims.d1 ? dims.d1.score : 50;
+      const d2 = dims.d2 ? dims.d2.score : 50;
+      const d3 = dims.d3 ? dims.d3.score : 50;
+      const d4 = dims.d4 ? dims.d4.score : 50;
+      const d5 = dims.d5 ? dims.d5.score : 50;
+      const spread = Math.max(d1, d2, d3, d4, d5) - Math.min(d1, d2, d3, d4, d5);
+      const deliveryRisk = Math.round(((100 - d3) * 0.55) + ((100 - d5) * 0.45));
+      const marketConfidence = Math.round((d2 * 0.6) + (d1 * 0.2) + (d4 * 0.2));
+      const strategyMomentum = Math.round((d4 * 0.55) + (d2 * 0.25) + (d3 * 0.2));
+      const seedBase = Number(String(initiativeId || '').replace(/[^\d]/g, '')) || 17;
+      const varianceKick = spread >= 30 ? 4 : spread >= 20 ? 2 : 0;
+      const panel = [
+        {
+          shark: 'Margin Surgeon',
+          base: gatekeeperScore * 0.55 + d1 * 0.45 - deliveryRisk * 0.08,
+          noise: deterministicNoise(seedBase + 1, -8, 6),
+          reason: 'Payback durability and gross-margin attribution were re-tested under downside scenarios.'
+        },
+        {
+          shark: 'Customer Advocate',
+          base: gatekeeperScore * 0.45 + d2 * 0.55 + marketConfidence * 0.06,
+          noise: deterministicNoise(seedBase + 2, -7, 7),
+          reason: 'Demand signal quality, customer proof depth, and willingness-to-adopt were cross-validated.'
+        },
+        {
+          shark: 'Tech Realist',
+          base: gatekeeperScore * 0.5 + d3 * 0.5 - deliveryRisk * 0.1,
+          noise: deterministicNoise(seedBase + 3, -9, 5),
+          reason: 'Integration complexity and delivery confidence were challenged against known platform constraints.'
+        },
+        {
+          shark: 'Commercial Strategist',
+          base: gatekeeperScore * 0.42 + d4 * 0.58 + strategyMomentum * 0.05,
+          noise: deterministicNoise(seedBase + 4, -6, 8),
+          reason: 'Strategic fit, brand leverage, and optional growth paths were benchmarked against portfolio goals.'
+        },
+        {
+          shark: 'Operator',
+          base: gatekeeperScore * 0.48 + d5 * 0.52 - deliveryRisk * 0.06,
+          noise: deterministicNoise(seedBase + 5, -8, 6),
+          reason: 'Execution readiness, field enablement, and change-load tolerance were stress tested.'
+        },
+        {
+          shark: 'Measurement Architect',
+          base: gatekeeperScore * 0.46 + d1 * 0.22 + d2 * 0.22 + d5 * 0.1,
+          noise: deterministicNoise(seedBase + 6, -7, 7),
+          reason: 'KPI ownership, baseline integrity, and attribution confidence were verified.'
+        }
+      ].map(s => {
+        const raw = Math.round(s.base + s.noise + varianceKick);
+        const score = clamp(raw, 30, 98);
+        return { shark: s.shark, score: score, reason: s.reason };
+      });
+      const avg = Math.round(panel.reduce((a, s) => a + s.score, 0) / panel.length);
+      const lowest = Math.min.apply(null, panel.map(s => s.score));
+      const redTeam = clamp(Math.round(((gatekeeperScore - 60) / 8) - (deliveryRisk / 25) - (spread / 18)), -10, 6);
+      const sharkCouncilScore = clamp(avg + redTeam, 25, 98);
+      const confidenceScore = clamp(Math.round((marketConfidence * 0.32) + ((100 - deliveryRisk) * 0.38) + ((100 - spread) * 0.3)), 5, 99);
+      const confidence = confidenceScore >= 78 ? 'High' : confidenceScore >= 55 ? 'Medium' : 'Low';
+      return {
+        sharkCouncilScore: sharkCouncilScore,
+        sharks: panel,
+        redTeam: redTeam,
+        average: avg,
+        confidence: confidence,
+        confidenceScore: confidenceScore,
+        lowestSharkScore: lowest,
+        concernFlags: {
+          deliveryRiskHigh: deliveryRisk >= 60,
+          spreadHigh: spread >= 30,
+          marketWeak: marketConfidence < 55
+        },
+        generatedAt: new Date().toISOString(),
+        generatedBy: user.name,
+        method: 'Deterministic multi-factor council model (dimension-sensitive, seed-stable variance)'
+      };
+    }
+
     document.getElementById('btn-run-sharks').addEventListener('click', () => {
       const id = document.getElementById('score-pick').value;
       if (!id) return;
       const dims = buildCurrentDims();
       const gk = AIC_DB.computeGatekeeperScore(dims);
-      const offset = (gk % 7) - 3;
-      const sharks = [
-        { shark:'Margin Surgeon', score: Math.max(35, Math.min(98, gk - 4 + offset)), reason:'Stress-tested payback, margin attribution, and downside confidence.' },
-        { shark:'Customer Advocate', score: Math.max(35, Math.min(98, gk + 2)), reason:'Reviewed customer evidence strength and market signal quality.' },
-        { shark:'Tech Realist', score: Math.max(35, Math.min(98, gk - 3)), reason:'Assessed implementation complexity and integration delivery risks.' },
-        { shark:'Commercial Strategist', score: Math.max(35, Math.min(98, gk + 5)), reason:'Evaluated strategic fit with enterprise priority and optionality.' },
-        { shark:'Operator', score: Math.max(35, Math.min(98, gk - 2)), reason:'Checked operating readiness, change load, and field feasibility.' },
-        { shark:'Measurement Architect', score: Math.max(35, Math.min(98, gk + 1)), reason:'Validated KPI ownership, baseline/target quality, and attribution model.' }
-      ];
-      const redTeam = Math.max(-8, Math.min(-1, -Math.round((100 - gk) / 20)));
-      const avg = Math.round(sharks.reduce((a,s)=>a+s.score,0) / sharks.length);
-      const sharkCouncilScore = Math.max(30, Math.min(98, avg + redTeam));
-      sharkModel = {
-        sharkCouncilScore,
-        sharks,
-        redTeam,
-        generatedAt: new Date().toISOString(),
-        generatedBy: user.name,
-        method: 'Deterministic unbiased simulator from Gatekeeper dimension profile'
-      };
-      document.getElementById('shark-summary').innerHTML = '<span class="badge ' + scoreClass(sharkCouncilScore) + '">Shark Council Score: ' + sharkCouncilScore + '</span> <span class="text-muted">(avg ' + avg + ', red team ' + redTeam + ')</span>';
-      document.getElementById('shark-preview').innerHTML = sharks.map(s =>
+      sharkModel = buildSharkCouncilModel(id, dims, gk);
+      document.getElementById('shark-summary').innerHTML = '<span class="badge ' + scoreClass(sharkModel.sharkCouncilScore) + '">Shark Council Score: ' + sharkModel.sharkCouncilScore + '</span> <span class="text-muted">(avg ' + sharkModel.average + ', red team ' + sharkModel.redTeam + ')</span>';
+      document.getElementById('shark-confidence').innerHTML =
+        '<span class="badge ' + scoreClass(sharkModel.confidenceScore) + '">Confidence: ' + AIC_SEC.escapeHtml(sharkModel.confidence) + ' (' + sharkModel.confidenceScore + ')</span> ' +
+        '<span class="text-xs text-muted">Band: ' + AIC_SEC.escapeHtml(scoreBand(sharkModel.sharkCouncilScore)) + '</span>';
+      document.getElementById('shark-preview').innerHTML = sharkModel.sharks.map(s =>
         '<div class="text-xs" style="padding:4px 0;"><strong>' + AIC_SEC.escapeHtml(s.shark) + ':</strong> ' + s.score + ' — ' + AIC_SEC.escapeHtml(s.reason) + '</div>'
       ).join('');
-      AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', { id, sharkCouncilScore }, 'INFO');
+      AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', {
+        id,
+        gatekeeperScore: gk,
+        sharkCouncilScore: sharkModel.sharkCouncilScore,
+        confidence: sharkModel.confidence,
+        redTeam: sharkModel.redTeam
+      }, 'INFO');
       showToast('Shark council scoring generated and attached.', 'success');
     });
     document.getElementById('btn-submit-score').addEventListener('click', async () => {
@@ -369,12 +455,16 @@ initPage({
         reviewStatus: autoReject ? 'Completed - Rejected' : 'Completed - Submitted to CXO',
         strategyReviewerReason: just.value,
         sharkCouncilScore: autoReject ? null : sharkModel.sharkCouncilScore,
+        sharkCouncilConfidence: autoReject ? null : sharkModel.confidence,
+        sharkCouncilConfidenceScore: autoReject ? null : sharkModel.confidenceScore,
+        sharkCouncilAverage: autoReject ? null : sharkModel.average,
+        sharkCouncilLowestScore: autoReject ? null : sharkModel.lowestSharkScore,
         sharkVerdicts: autoReject ? [] : sharkModel.sharks.map((s, idx) => ({
           shark: s.shark,
           icon: ['🔪','👤','💻','📊','🏪','📏'][idx] || '⭐',
           color: ['#fee2e2','#d1fae5','#dbeafe','#ede9fe','#fef3c7','#d1fae5'][idx] || '#e2e8f0',
           score: s.score,
-          confidence: 'Medium',
+          confidence: sharkModel.confidence,
           recommendation: s.score >= 75 ? 'INVEST' : s.score >= 60 ? 'CONDITIONAL' : 'NO INVEST',
           assessment: s.reason
         })).concat(autoReject ? [] : [{

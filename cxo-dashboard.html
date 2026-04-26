@@ -96,6 +96,10 @@
         <label class="form-label">Initiative</label>
         <select id="council-pick"></select>
       </div>
+      <div class="card" style="background:var(--color-surface2);border:1px dashed var(--color-border);margin-bottom:12px;">
+        <div class="text-sm font-semibold mb-sm">Pre-Read (Strategy + Shark Council)</div>
+        <div id="cxo-pre-read" class="text-xs text-muted">Select an initiative to load gatekeeper and shark council verdict details.</div>
+      </div>
       <div class="form-group">
         <label class="form-label" style="display:flex;justify-content:space-between;">
           <span>Council Score</span><span id="council-score-bubble" class="text-accent font-semibold">75</span>
@@ -258,10 +262,41 @@ initPage({
 
     // Council vote modal
     const modal = document.getElementById('council-modal');
+    const preRead = document.getElementById('cxo-pre-read');
+    function renderCxoPreRead(id) {
+      const i = AIC_DB.getInitiative(id);
+      if (!i) {
+        preRead.textContent = 'Select an initiative to load gatekeeper and shark council verdict details.';
+        return;
+      }
+      const sharkScore = i.sharkCouncilScore != null ? i.sharkCouncilScore : '—';
+      const sharkConfidence = i.sharkCouncilConfidence || 'Not captured';
+      const gkScore = i.gatekeeperScore != null ? i.gatekeeperScore : '—';
+      const gkReason = i.strategyReviewerReason || i.gatekeeperNote || 'No gatekeeper rationale captured.';
+      const sharkVerdicts = (i.sharkVerdicts || []).filter(v => v.shark !== 'Red Team');
+      const sharkList = sharkVerdicts.length
+        ? sharkVerdicts.map(v =>
+          '<li><strong>' + AIC_SEC.escapeHtml(v.shark) + ':</strong> ' + AIC_SEC.escapeHtml(String(v.score)) +
+          ' <span class="text-muted">(' + AIC_SEC.escapeHtml(v.recommendation || '—') + ')</span> — ' +
+          AIC_SEC.escapeHtml(v.assessment || 'No details') + '</li>'
+        ).join('')
+        : '<li>No shark verdicts captured for this initiative.</li>';
+      preRead.innerHTML =
+        '<div class="mb-sm"><span class="badge ' + scoreClass(Number(gkScore) || 0) + '">Gatekeeper: ' + AIC_SEC.escapeHtml(String(gkScore)) + '</span> ' +
+        '<span class="badge ' + (i.sharkCouncilScore != null ? scoreClass(i.sharkCouncilScore) : 'badge-neutral') + '">Shark Council: ' + AIC_SEC.escapeHtml(String(sharkScore)) + '</span> ' +
+        '<span class="badge badge-info">Confidence: ' + AIC_SEC.escapeHtml(sharkConfidence) + '</span></div>' +
+        '<div class="mb-sm"><strong>Strategy Reviewer Rationale</strong><div class="text-xs">' + AIC_SEC.escapeHtml(gkReason) + '</div></div>' +
+        '<div><strong>Shark Panel Verdicts</strong><ul class="text-xs" style="padding-left:16px;margin:8px 0 0;">' + sharkList + '</ul></div>';
+    }
     function openModal() {
       const sel = document.getElementById('council-pick');
       const eligible = sortByPriorityAndScore(cache.filter(i => i.status === 'Awaiting CXO Approval' || i.status === 'Validated' || i.status === 'Approved')); 
       sel.innerHTML = eligible.map(i => '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>').join('');
+      if (eligible.length) {
+        renderCxoPreRead(eligible[0].id);
+      } else {
+        preRead.textContent = 'No initiatives currently available for council vote.';
+      }
       modal.style.display = 'flex';
     }
     function closeModal() { modal.style.display = 'none'; }
@@ -269,6 +304,7 @@ initPage({
       if (!AIC_SEC.hasRole(user.role, 'Investment_Committee')) { showToast('Council votes are limited to Investment Committee members.', 'warning'); return; }
       openModal();
     });
+    document.getElementById('council-pick').addEventListener('change', (e) => renderCxoPreRead(e.target.value));
     modal.addEventListener('click', e => { if (e.target === modal || e.target.matches('[data-close]')) closeModal(); });
     document.getElementById('council-score').addEventListener('input', e => document.getElementById('council-score-bubble').textContent = e.target.value);
     document.getElementById('btn-council-submit').addEventListener('click', () => {
