@@ -102,7 +102,11 @@
 (function () {
   // populate demo user selector grouped by role
   const select = document.getElementById('demo-user');
-  const users = AIC_DB.getUsers();
+  let users = AIC_DB.getUsers();
+  if (!users.length) {
+    AIC_DB.resetSampleData();
+    users = AIC_DB.getUsers();
+  }
   const groups = {
     'Platform_Admin': 'Platform Admin',
     'Investment_Committee': 'Investment Committee',

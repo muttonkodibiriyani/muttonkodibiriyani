@@ -498,7 +498,15 @@ const AIC_DB = (function () {
   };
 
   // --- users ---
-  api.getUsers = function () { return read(KEYS.users, []).filter(u => !u.deleted); };
+  api.getUsers = function () {
+    let users = read(KEYS.users, []);
+    if (!Array.isArray(users) || !users.length) {
+      // Self-heal demo mode when localStorage was cleared or corrupted.
+      users = getSampleUsers();
+      write(KEYS.users, users);
+    }
+    return users.filter(u => !u.deleted);
+  };
   api.getUserById = function (id) {
     const list = read(KEYS.users, []);
     return list.find(u => u.id === id) || null;
