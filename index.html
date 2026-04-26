@@ -71,18 +71,13 @@
       <div class="login-divider">— or sign in for demo —</div>
 
       <div class="form-group">
-        <label class="form-label" for="demo-user">Choose Demo User</label>
-        <select id="demo-user">
-          <option value="">— select a profile —</option>
-        </select>
-        <small class="form-help">Demo mode uses local browser storage only. No data leaves your device.</small>
+        <div class="flex justify-between items-center mb-sm">
+          <label class="form-label" style="margin:0;">Choose Demo Profile</label>
+          <button id="btn-reset-demo" type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;"><i class="fas fa-rotate"></i> Reset demo data</button>
+        </div>
+        <div id="demo-cards" class="demo-cards" aria-label="Demo profiles"></div>
+        <small class="form-help" style="margin-top:8px;">Demo mode uses local browser storage only. No data leaves your device.</small>
       </div>
-
-      <div id="user-preview" style="display:none;"></div>
-
-      <button id="btn-demo" class="btn btn-secondary btn-block btn-lg" disabled style="margin-top:14px;">
-        <i class="fas fa-arrow-right-to-bracket"></i> Continue as Demo User
-      </button>
 
       <p class="text-xs text-muted mt-md text-center">
         Need access? Email
@@ -100,54 +95,64 @@
 <script src="js/app.js"></script>
 <script>
 (function () {
-  // populate demo user selector grouped by role
-  const select = document.getElementById('demo-user');
-  let users = AIC_DB.getUsers();
-  if (!users.length) {
-    AIC_DB.resetSampleData();
-    users = AIC_DB.getUsers();
-  }
-  const groups = {
-    'Platform_Admin': 'Platform Admin',
-    'Investment_Committee': 'Investment Committee',
-    'Strategy_Reviewer': 'Strategy Reviewers',
-    'Initiative_Submitter': 'Initiative Submitters',
+  const REQUIRED_ROLES = ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Platform_Admin'];
+  const ROLE_LABELS = {
+    'Initiative_Submitter': 'Initiator',
+    'Strategy_Reviewer':    'Strategy Reviewer',
+    'Investment_Committee': 'CXO / Investment Committee',
+    'Platform_Admin':       'Platform Admin'
   };
-  Object.keys(groups).forEach(role => {
-    const list = users.filter(u => u.role === role);
-    if (!list.length) return;
-    const og = document.createElement('optgroup');
-    og.label = groups[role];
-    list.forEach(u => {
-      const o = document.createElement('option');
-      o.value = u.id;
-      o.textContent = u.name + ' — ' + u.title;
-      og.appendChild(o);
-    });
-    select.appendChild(og);
-  });
+  const ROLE_DESCRIPTIONS = {
+    'Initiative_Submitter': 'Create and submit new investment initiatives.',
+    'Strategy_Reviewer':    'Score initiatives and run shark council review.',
+    'Investment_Committee': 'Approve, reject, or veto initiatives.',
+    'Platform_Admin':       'Manage roles, users, logs, and access control.'
+  };
+  const ROLE_ICONS = {
+    'Initiative_Submitter': 'fa-lightbulb',
+    'Strategy_Reviewer':    'fa-clipboard-check',
+    'Investment_Committee': 'fa-gavel',
+    'Platform_Admin':       'fa-shield-halved'
+  };
 
-  const preview = document.getElementById('user-preview');
-  const btn = document.getElementById('btn-demo');
+  function loadUsers() {
+    let users = [];
+    try { users = AIC_DB.getUsers() || []; } catch (e) { users = []; }
+    const haveAllRoles = REQUIRED_ROLES.every(r => users.some(u => u.role === r));
+    if (!haveAllRoles) {
+      try { AIC_DB.resetSampleData(); } catch (e) { console.warn('reseed failed', e); }
+      try { users = AIC_DB.getUsers() || []; } catch (e) { users = []; }
+    }
+    return users;
+  }
 
-  select.addEventListener('change', () => {
-    const u = users.find(x => x.id === select.value);
-    if (!u) {
-      preview.style.display = 'none';
-      btn.disabled = true;
+  let users = loadUsers();
+  const cards = document.getElementById('demo-cards');
+
+  function renderCards() {
+    if (!cards) return;
+    if (!users.length) {
+      cards.innerHTML = '<div class="demo-empty">No demo profiles loaded. Click "Reset demo data".</div>';
       return;
     }
-    preview.style.display = 'flex';
-    preview.className = 'user-preview';
-    preview.innerHTML =
-      '<div class="avatar">' + AIC_SEC.escapeHtml(u.initials) + '</div>' +
-      '<div class="up-meta">' +
-        '<div class="up-name">' + AIC_SEC.escapeHtml(u.name) + '</div>' +
-        '<div class="up-title">' + AIC_SEC.escapeHtml(u.title) + ' · ' + AIC_SEC.escapeHtml(u.department) + '</div>' +
-      '</div>' +
-      '<span class="badge badge-accent">' + AIC_SEC.escapeHtml(u.role.replace(/_/g, ' ')) + '</span>';
-    btn.disabled = false;
-  });
+    const ordered = REQUIRED_ROLES
+      .map(role => users.find(u => u.role === role))
+      .filter(Boolean);
+    cards.innerHTML = ordered.map(u =>
+      '<button type="button" class="demo-card" data-id="' + AIC_SEC.encodeAttr(u.id) + '">' +
+        '<div class="dc-icon"><i class="fas ' + (ROLE_ICONS[u.role] || 'fa-user') + '"></i></div>' +
+        '<div class="dc-meta">' +
+          '<div class="dc-role">' + AIC_SEC.escapeHtml(ROLE_LABELS[u.role] || u.role) + '</div>' +
+          '<div class="dc-name">' + AIC_SEC.escapeHtml(u.name) + '</div>' +
+          '<div class="dc-desc">' + AIC_SEC.escapeHtml(ROLE_DESCRIPTIONS[u.role] || '') + '</div>' +
+        '</div>' +
+        '<i class="fas fa-arrow-right dc-go"></i>' +
+      '</button>'
+    ).join('');
+    cards.querySelectorAll('.demo-card').forEach(el => {
+      el.addEventListener('click', () => signInAs(el.getAttribute('data-id')));
+    });
+  }
 
   function routeForRole(role) {
     switch (role) {
@@ -159,18 +164,30 @@
     }
   }
 
-  btn.addEventListener('click', () => {
-    const u = users.find(x => x.id === select.value);
-    if (!u) return;
+  function signInAs(userId) {
+    const u = users.find(x => x.id === userId);
+    if (!u) { showToast('Demo profile not found. Resetting demo data.', 'warning'); resetDemo(); return; }
     const rl = AIC_SEC.checkRateLimit('login', 5, 60000);
     if (!rl.allowed) { showToast('Too many login attempts. Try again shortly.', 'error'); return; }
     AIC_DB.setUser(u);
     AIC_SEC.createSession(u);
     AIC_SEC.audit('LOGIN_SUCCESS', { userId: u.id, role: u.role, method:'demo' }, 'INFO');
     AIC_SEC.flushAudit();
-    showToast('Welcome, ' + u.name, 'success', 1200);
-    setTimeout(() => { window.location.href = routeForRole(u.role); }, 250);
-  });
+    showToast('Welcome, ' + u.name, 'success', 1000);
+    setTimeout(() => { window.location.href = routeForRole(u.role); }, 200);
+  }
+
+  function resetDemo() {
+    try { AIC_DB.resetSampleData(); } catch (e) { console.warn(e); }
+    users = loadUsers();
+    renderCards();
+    showToast('Demo data reset. Profiles are ready.', 'success', 1200);
+  }
+
+  const resetBtn = document.getElementById('btn-reset-demo');
+  if (resetBtn) resetBtn.addEventListener('click', resetDemo);
+
+  renderCards();
 
   document.getElementById('btn-aad').addEventListener('click', async () => {
     if (!AIC_CONFIG.features.enableAzureAD) {
