@@ -152,7 +152,7 @@ initPage({
 
     function renderTable() {
       const tb = document.getElementById('tbody');
-      tb.innerHTML = cache.map(i =>
+      tb.innerHTML = sortByPriorityAndScore(cache).map(i =>
         '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
         '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
         '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
@@ -190,7 +190,7 @@ initPage({
     function renderKanban() {
       const cols = ['Draft','Submitted','Validated','Approved','Closed'];
       const groups = {};
-      cols.forEach(c => groups[c] = cache.filter(i => i.status === c));
+      cols.forEach(c => groups[c] = sortByPriorityAndScore(cache.filter(i => i.status === c))); 
       document.getElementById('kanban').innerHTML = cols.map(c =>
         '<div class="kanban-col">' +
           '<div class="kanban-col-title">' + c + ' <span>' + groups[c].length + '</span></div>' +
@@ -252,7 +252,7 @@ initPage({
       const rows = cache.map(i => ({
         ID: i.id, Title: i.title, Domain: i.domain, Status: i.status, Stage: i.stage,
         Submitter: i.submittedBy, Sponsor: i.sponsor, Budget: i.budgetRequested,
-        Approved: i.budgetApproved, Spent: i.budgetSpent, GatekeeperScore: i.gatekeeperScore, CouncilScore: i.councilScore, Decision: i.decision
+        Approved: i.budgetApproved, Spent: i.budgetSpent, GatekeeperScore: i.gatekeeperScore, SharkCouncilScore: i.sharkCouncilScore, CouncilScore: i.councilScore, Decision: i.decision
       }));
       exportToCsv('aic-portfolio-' + new Date().toISOString().slice(0,10) + '.csv', rows);
     });
@@ -261,7 +261,7 @@ initPage({
     const modal = document.getElementById('council-modal');
     function openModal() {
       const sel = document.getElementById('council-pick');
-      const eligible = cache.filter(i => i.status === 'Validated' || i.status === 'Approved');
+      const eligible = sortByPriorityAndScore(cache.filter(i => i.status === 'Awaiting CXO Approval' || i.status === 'Validated' || i.status === 'Approved')); 
       sel.innerHTML = eligible.map(i => '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>').join('');
       modal.style.display = 'flex';
     }
@@ -289,7 +289,7 @@ initPage({
       AIC_DB.updateInitiative(id, {
         councilScore: score,
         decision: decision,
-        status: status,
+        status: status === 'Approved' ? 'Approved by CXO' : status,
         stage: stage,
         budgetApproved: decision === 'Rejected' ? 0 : init.budgetRequested,
         stageRelease: stageRelease,

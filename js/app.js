@@ -85,13 +85,31 @@ function scoreRingClass(score) {
 }
 function statusClass(status) {
   switch (status) {
-    case 'Approved': case 'Closed': return 'badge-success';
-    case 'Validated': case 'Awaiting Council': return 'badge-info';
-    case 'Submitted': case 'Gatekeeper Review': return 'badge-warning';
-    case 'Rejected': case 'Deleted': return 'badge-danger';
+    case 'Approved': case 'Approved by CXO': case 'Closed': return 'badge-success';
+    case 'Validated': case 'Awaiting Council': case 'Awaiting CXO Approval': return 'badge-info';
+    case 'Submitted': case 'Under Review': case 'Gatekeeper Review': return 'badge-warning';
+    case 'Rejected': case 'Rejected by Gatekeeper': case 'Deleted': return 'badge-danger';
     case 'Draft': return 'badge-neutral';
     default: return 'badge-neutral';
   }
+}
+
+function priorityRank(priority) {
+  if (priority === 'Strategic') return 3;
+  if (priority === 'Efficiency') return 2;
+  if (priority === 'Quick Win') return 1;
+  return 0;
+}
+
+function sortByPriorityAndScore(items) {
+  return (items || []).slice().sort((a,b) => {
+    const pr = priorityRank(b.priority) - priorityRank(a.priority);
+    if (pr !== 0) return pr;
+    const scoreA = (typeof a.gatekeeperScore === 'number' ? a.gatekeeperScore : -1);
+    const scoreB = (typeof b.gatekeeperScore === 'number' ? b.gatekeeperScore : -1);
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
 }
 function decisionClass(decision) {
   if (!decision) return 'badge-neutral';
@@ -372,6 +390,8 @@ window.scoreRingClass = scoreRingClass;
 window.statusClass = statusClass;
 window.decisionClass = decisionClass;
 window.computeCouncilScore = computeCouncilScore;
+window.priorityRank = priorityRank;
+window.sortByPriorityAndScore = sortByPriorityAndScore;
 window.getUser = getUser;
 window.requireAuth = requireAuth;
 window.signOut = signOut;

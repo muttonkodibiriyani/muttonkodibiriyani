@@ -160,8 +160,8 @@ initPage({
   onReady: async function (user) {
     let cache = AIC_DB.getInitiatives();
 
-    function pending() { return cache.filter(i => i.status === 'Submitted' || i.stage === 'Gatekeeper Review'); }
-    function awaitingCouncil() { return cache.filter(i => i.status === 'Validated' || i.stage === 'Awaiting Council'); }
+    function pending() { return cache.filter(i => i.status === 'Submitted' || i.status === 'Under Review' || i.stage === 'Gatekeeper Review'); }
+    function awaitingCouncil() { return cache.filter(i => i.status === 'Awaiting CXO Approval' || i.stage === 'Awaiting Council'); }
 
     function renderStats() {
       const p = pending();
@@ -181,7 +181,7 @@ initPage({
 
     function renderPending() {
       const tb = document.getElementById('tbody-pending');
-      const list = pending();
+      const list = sortByPriorityAndScore(pending());
       if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-lg">No initiatives currently awaiting your review.</td></tr>'; return; }
       tb.innerHTML = list.map(i =>
         '<tr><td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
@@ -201,7 +201,7 @@ initPage({
 
     function renderPipeline() {
       const tb = document.getElementById('tbody-pipeline');
-      tb.innerHTML = cache.map(i =>
+      tb.innerHTML = sortByPriorityAndScore(cache).map(i =>
         '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
         '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
         '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
@@ -288,23 +288,32 @@ initPage({
       });
       const score = AIC_DB.computeGatekeeperScore(dims);
       const rec = document.getElementById('recommendation').value;
-      const status = rec === 'PASS' ? 'Validated' : rec === 'CONDITIONAL' ? 'Validated' : rec === 'REJECT' ? 'Rejected' : 'Submitted';
-      const stage = rec === 'PASS' || rec === 'CONDITIONAL' ? 'Awaiting Council' : (rec === 'REJECT' ? 'Rejected' : 'Gatekeeper Review');
+      const autoReject = score < 50;
+      const status = autoReject ? 'Rejected by Gatekeeper' : (rec === 'REJECT' ? 'Rejected by Gatekeeper' : 'Awaiting CXO Approval');
+      const stage = autoReject ? 'Rejected at Gatekeeper' : 'Awaiting Council';
       const patch = {
         gatekeeperScore: score,
         dimensions: dims,
         status: status,
         stage: stage,
         confidenceLevel: document.getElementById('confidence').value,
-        decision: rec === 'REJECT' ? 'Rejected' : 'Pending',
+        decision: autoReject ? 'Rejected by Gatekeeper' : 'Submitted for CXO Approval',
         gatekeeperNote: just.value,
         gatekeeperConditions: document.getElementById('conditions').value || null,
         scoredBy: user.name,
-        scoredAt: new Date().toISOString()
+        scoredAt: new Date().toISOString(),
+        reviewStatus: autoReject ? 'Completed - Rejected' : 'Completed - Submitted to CXO'
+
       };
       AIC_DB.updateInitiative(id, patch);
-      AIC_SEC.audit('GATEKEEPER_SCORE_SUBMITTED', { id, score, recommendation: rec }, 'INFO');
-      showToast('Score submitted — ' + score + ' (' + scoreLabel(score) + ')', 'success');
+      if (!autoReject) {
+        const sharkCouncilScore = Math.max(35, Math.min(98, Math.round(score * 0.9 + 5)));
+        AIC_DB.updateInitiative(id, { sharkCouncilScore: sharkCouncilScore, sharkCouncilGeneratedBy: user.name, sharkCouncilGeneratedAt: new Date().toISOString() });
+        AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', { id, sharkCouncilScore }, 'INFO');
+      }
+      AIC_SEC.audit('GATEKEEPER_SCORE_SUBMITTED', { id, score, recommendation: rec, autoReject }, 'INFO');
+      showToast(autoReject ? 'Scoring completed. Initiative rejected (<50) and sent back to Initiator.' : 'Scoring completed. Submitted for CXO approval.', autoReject ? 'warning' : 'success');
+      document.querySelector('.tab[data-tab="pending"]').click();
       cache = AIC_DB.getInitiatives();
       renderStats(); renderPending(); renderPipeline(); renderInsights(); buildPickList();
     });

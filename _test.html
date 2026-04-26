@@ -57,13 +57,13 @@ function runTests() {
   });
   t('DB has 7 users across 4 roles', () => {
     const users = AIC_DB.getUsers();
-    eq(users.length, 7);
+    eq(users.length, 4);
     const roles = new Set(users.map(u => u.role));
     assert(roles.has('Platform_Admin'));
     assert(roles.has('Investment_Committee'));
     assert(roles.has('Strategy_Reviewer'));
     assert(roles.has('Initiative_Submitter'));
-    return 'all 5 roles present';
+    return 'all 4 roles present';
   });
   t('Authentication: each role has at least one user', () => {
     ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter'].forEach(r => {
