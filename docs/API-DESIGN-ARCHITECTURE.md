@@ -1,12 +1,14 @@
 # AIC API Design Architecture
 
 ## 1) API Principles
+
 - Resource-oriented REST surface
 - Consistent JSON contracts
 - Explicit status transitions for governance workflow
 - Backward-compatible evolution strategy
 
 ## 2) Resource Groups
+
 - Initiatives: create/read/update/list/soft-delete
 - Users: CRUD + role assignment metadata
 - Evaluations: gatekeeper/council submissions
@@ -17,7 +19,9 @@
 ## 3) Contract Example
 
 ### POST `/initiatives`
+
 Request:
+
 ```json
 {
   "title": "AI Inventory Optimization",
@@ -28,6 +32,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "id": "INV-2026-0100",
@@ -38,13 +43,16 @@ Response:
 ```
 
 ## 4) Status Transition Rules (logical)
+
 - Draft -> Submitted (submitter)
 - Submitted -> Validated/Returned/Rejected (strategy reviewer)
 - Validated -> Approved/Conditional/Rejected (committee/admin)
 - Approved -> Stage gate progression by authorized role
 
 ## 5) Error Contract
+
 Standardized error shape:
+
 ```json
 {
   "code": "VALIDATION_ERROR",
@@ -55,16 +63,20 @@ Standardized error shape:
 ```
 
 ## 6) Reliability Pattern
+
 - Retry on 429/5xx with exponential backoff
 - Optional optimistic concurrency via ETag for updates
 - Idempotent operations where possible
 
 ## 7) Security Contract
+
 - `Authorization: Bearer <JWT>` required
 - `X-Request-ID` for traceability
 - `X-CSRF-Token` for mutation requests
 
 ## 8) Versioning Strategy
+
 - Path versioning (`/aic/v1`)
 - Additive field evolution for non-breaking changes
 - Introduce `/v2` for breaking changes only
+
