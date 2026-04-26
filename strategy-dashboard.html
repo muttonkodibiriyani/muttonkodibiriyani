@@ -185,7 +185,7 @@ initPage({
       if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-lg">No initiatives currently awaiting your review.</td></tr>'; return; }
       tb.innerHTML = list.map(i =>
         '<tr><td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
-        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong>' + renderStatusTimeline(i) + '</td>' +
         '<td><span class="chip">' + AIC_SEC.escapeHtml(i.domain) + '</span></td>' +
         '<td>' + AIC_SEC.escapeHtml(i.submittedBy || '') + '</td>' +
         '<td class="text-xs">' + formatDate(i.submittedDate) + '</td>' +
@@ -204,7 +204,7 @@ initPage({
       tb.innerHTML = sortByPriorityAndScore(cache).map(i =>
         '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
         '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
-        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong>' + renderStatusTimeline(i) + '</td>' +
         '<td>' + AIC_SEC.escapeHtml(i.domain) + '</td>' +
         '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
         '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +

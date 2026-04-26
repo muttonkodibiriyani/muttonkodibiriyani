@@ -933,3 +933,12 @@ input[type=checkbox], input[type=radio] {
   .top-bar { padding: 0 16px; }
   .page-body { padding: 16px; }
 }
+
+
+/* status timeline */
+.status-timeline { display:flex; align-items:center; gap:6px; margin-top:6px; }
+.tl-dot { width:8px; height:8px; border-radius:50%; background:#cbd5e1; display:inline-block; }
+.tl-dot.active { background: var(--color-success); }
+.tl-dot.danger { background: var(--color-danger); }
+.tl-line { width:16px; height:2px; background:#cbd5e1; display:inline-block; }
+.tl-text { font-size:11px; color:var(--color-muted); margin-left:6px; }

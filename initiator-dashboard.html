@@ -185,7 +185,7 @@ initPage({
       if (!rows.length) { tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted p-lg">No initiatives yet — click <strong>New Initiative</strong> to get started.</td></tr>'; return; }
       tb.innerHTML = rows.map(i =>
         '<tr class="clickable" data-id="' + AIC_SEC.encodeAttr(i.id) + '">' +
-          '<td><div style="font-weight:600;">' + AIC_SEC.escapeHtml(i.title) + '</div><div class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.id) + '</div></td>' +
+          '<td><div style="font-weight:600;">' + AIC_SEC.escapeHtml(i.title) + '</div><div class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.id) + '</div>' + renderStatusTimeline(i) + '</td>' +
           '<td><span class="chip">' + AIC_SEC.escapeHtml(i.domain) + '</span></td>' +
           '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
           '<td class="text-muted text-xs">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +
@@ -220,8 +220,9 @@ initPage({
           '<div class="text-sm text-muted mb-md">Last saved ' + timeAgo(d.savedAt) + '</div>' +
           (d.projectedGatekeeperScore != null ? '<div class="mb-md"><span class="badge ' + scoreClass(d.projectedGatekeeperScore) + '">Projected GK: ' + d.projectedGatekeeperScore + ' (' + AIC_SEC.escapeHtml(d.scoreBand || scoreLabel(d.projectedGatekeeperScore)) + ')</span></div>' : '') +
           '<div class="progress-bar mb-md"><div class="progress-bar-fill" style="width:' + pct + '%"></div></div>' +
-          '<div class="flex gap-sm">' +
+          '<div class="flex gap-sm" style="flex-wrap:wrap;">' +
             '<a href="submit-initiative.html?draft=' + AIC_SEC.encodeAttr(d.id) + '" class="btn btn-primary btn-sm"><i class="fas fa-pen"></i> Resume</a>' +
+            '<button class="btn btn-success btn-sm" data-submit-draft="' + AIC_SEC.encodeAttr(d.id) + '"><i class="fas fa-paper-plane"></i> Submit Demo</button>' +
             '<button class="btn btn-danger btn-sm" data-delete-draft="' + AIC_SEC.encodeAttr(d.id) + '"><i class="fas fa-trash"></i> Delete</button>' +
           '</div></div>';
       }).join('');

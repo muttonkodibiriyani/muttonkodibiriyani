@@ -155,7 +155,7 @@ initPage({
       tb.innerHTML = sortByPriorityAndScore(cache).map(i =>
         '<tr class="clickable" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
         '<td class="text-xs">' + AIC_SEC.escapeHtml(i.id) + '</td>' +
-        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong></td>' +
+        '<td><strong>' + AIC_SEC.escapeHtml(i.title) + '</strong>' + renderStatusTimeline(i) + '</td>' +
         '<td><span class="chip">' + AIC_SEC.escapeHtml(i.domain) + '</span></td>' +
         '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
         '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +
@@ -196,7 +196,7 @@ initPage({
           '<div class="kanban-col-title">' + c + ' <span>' + groups[c].length + '</span></div>' +
           groups[c].map(i =>
             '<div class="kanban-card" data-go="' + AIC_SEC.encodeAttr(i.id) + '">' +
-              '<div class="kc-title">' + AIC_SEC.escapeHtml(i.title) + '</div>' +
+              '<div class="kc-title">' + AIC_SEC.escapeHtml(i.title) + '</div>' + renderStatusTimeline(i) +
               '<div class="text-xs text-muted mb-sm">' + AIC_SEC.escapeHtml(i.domain) + '</div>' +
               '<div class="kc-meta">' +
                 '<div class="text-xs">' + formatCurrency(i.budgetRequested,'USD',true) + '</div>' +

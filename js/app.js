@@ -64,6 +64,31 @@ function getParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+
+function lifecycleStepIndex(initiative) {
+  const status = (initiative && initiative.status) || '';
+  if (status === 'Rejected' || status === 'Rejected by Gatekeeper' || status.indexOf('Rejected') >= 0) return 1;
+  if (status === 'Submitted' || status === 'Under Review' || status === 'Gatekeeper Review') return 1;
+  if (status === 'Validated' || status === 'Awaiting Council' || status === 'Awaiting CXO Approval') return 2;
+  if (status === 'Approved' || status === 'Approved by CXO') return 3;
+  if (status === 'Closed' || status === 'Completed') return 4;
+  return 0;
+}
+
+function renderStatusTimeline(initiative) {
+  const labels = ['Submitted','Gatekeeper','CXO','Approved','Completed'];
+  const idx = lifecycleStepIndex(initiative);
+  const rejected = ((initiative && initiative.status) || '').toLowerCase().indexOf('reject') >= 0;
+  const dots = labels.map((label, i) => {
+    const active = i <= idx ? 'active' : '';
+    const danger = rejected && i >= 1 ? 'danger' : '';
+    return '<span class="tl-dot ' + active + ' ' + danger + '" title="' + AIC_SEC.escapeHtml(label) + '"></span>';
+  }).join('<span class="tl-line"></span>');
+  const stateLabel = initiative && initiative.status ? initiative.status : 'Draft';
+  return '<div class="status-timeline">' + dots + '<span class="tl-text">' + AIC_SEC.escapeHtml(stateLabel) + '</span></div>';
+}
+
+
 /* ------------------ Score helpers ------------------ */
 function scoreClass(score) {
   if (score == null || isNaN(score)) return 'badge-neutral';
@@ -392,6 +417,8 @@ window.decisionClass = decisionClass;
 window.computeCouncilScore = computeCouncilScore;
 window.priorityRank = priorityRank;
 window.sortByPriorityAndScore = sortByPriorityAndScore;
+window.renderStatusTimeline = renderStatusTimeline;
+window.lifecycleStepIndex = lifecycleStepIndex;
 window.getUser = getUser;
 window.requireAuth = requireAuth;
 window.signOut = signOut;
