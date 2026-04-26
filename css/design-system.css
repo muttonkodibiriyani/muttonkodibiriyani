@@ -822,17 +822,18 @@ input[type=checkbox], input[type=radio] {
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: var(--color-text);
+  color: rgba(255,255,255,0.95);
 }
 .feature-list .feat-icon {
   width: 32px; height: 32px;
   border-radius: 8px;
-  background: rgba(99,102,241,0.15);
-  color: var(--color-accent);
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px;
   flex-shrink: 0;
 }
+.login-hero .text-muted { color: rgba(255,255,255,0.82) !important; }
 .login-foot {
   position: relative;
   font-size: 11px;

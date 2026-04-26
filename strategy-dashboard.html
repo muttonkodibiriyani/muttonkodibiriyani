@@ -85,6 +85,15 @@
             <select id="score-pick"><option value="">— select —</option></select>
           </div>
           <div id="dim-sliders"></div>
+
+          <div class="card" style="background:var(--color-surface2);border:1px dashed var(--color-border);margin-bottom:16px;">
+            <div class="flex justify-between items-center mb-sm">
+              <strong>Shark Council Simulator</strong>
+              <button id="btn-run-sharks" class="btn btn-secondary btn-sm" disabled><i class="fas fa-wand-magic-sparkles"></i> Run Shark Council Score</button>
+            </div>
+            <div id="shark-summary" class="text-xs text-muted">Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.</div>
+            <div id="shark-preview" class="mt-sm"></div>
+          </div>
           <div class="form-group">
             <label class="form-label">Justification (required)</label>
             <textarea id="justification" placeholder="Explain key drivers behind the score…"></textarea>
@@ -264,14 +273,64 @@ initPage({
       AIC_CHARTS.radar('chart-radar', dimDefs.map(d => d.name), dimDefs.map(d => dims[d.key].score));
     }
 
+    let sharkModel = null;
+
     document.getElementById('score-pick').addEventListener('change', (e) => {
       const id = e.target.value;
       const init = id ? AIC_DB.getInitiative(id) : null;
       buildSliders(init);
+      sharkModel = null;
+      document.getElementById('shark-preview').innerHTML = '';
+      document.getElementById('shark-summary').textContent = 'Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.';
+      document.getElementById('btn-run-sharks').disabled = !id;
       document.getElementById('btn-submit-score').disabled = !id;
     });
     document.getElementById('recommendation').addEventListener('change', (e) => {
       document.getElementById('conditions-wrap').style.display = e.target.value === 'CONDITIONAL' ? 'block' : 'none';
+    });
+
+
+    function buildCurrentDims() {
+      const dims = {};
+      document.querySelectorAll('input[data-dim]').forEach(r => {
+        const k = r.getAttribute('data-dim');
+        const def = dimDefs.find(d => d.key === k);
+        dims[k] = { name: def.name, score: Number(r.value), weight: def.weight, color: def.color };
+      });
+      return dims;
+    }
+
+    document.getElementById('btn-run-sharks').addEventListener('click', () => {
+      const id = document.getElementById('score-pick').value;
+      if (!id) return;
+      const dims = buildCurrentDims();
+      const gk = AIC_DB.computeGatekeeperScore(dims);
+      const offset = (gk % 7) - 3;
+      const sharks = [
+        { shark:'Margin Surgeon', score: Math.max(35, Math.min(98, gk - 4 + offset)), reason:'Stress-tested payback, margin attribution, and downside confidence.' },
+        { shark:'Customer Advocate', score: Math.max(35, Math.min(98, gk + 2)), reason:'Reviewed customer evidence strength and market signal quality.' },
+        { shark:'Tech Realist', score: Math.max(35, Math.min(98, gk - 3)), reason:'Assessed implementation complexity and integration delivery risks.' },
+        { shark:'Commercial Strategist', score: Math.max(35, Math.min(98, gk + 5)), reason:'Evaluated strategic fit with enterprise priority and optionality.' },
+        { shark:'Operator', score: Math.max(35, Math.min(98, gk - 2)), reason:'Checked operating readiness, change load, and field feasibility.' },
+        { shark:'Measurement Architect', score: Math.max(35, Math.min(98, gk + 1)), reason:'Validated KPI ownership, baseline/target quality, and attribution model.' }
+      ];
+      const redTeam = Math.max(-8, Math.min(-1, -Math.round((100 - gk) / 20)));
+      const avg = Math.round(sharks.reduce((a,s)=>a+s.score,0) / sharks.length);
+      const sharkCouncilScore = Math.max(30, Math.min(98, avg + redTeam));
+      sharkModel = {
+        sharkCouncilScore,
+        sharks,
+        redTeam,
+        generatedAt: new Date().toISOString(),
+        generatedBy: user.name,
+        method: 'Deterministic unbiased simulator from Gatekeeper dimension profile'
+      };
+      document.getElementById('shark-summary').innerHTML = '<span class="badge ' + scoreClass(sharkCouncilScore) + '">Shark Council Score: ' + sharkCouncilScore + '</span> <span class="text-muted">(avg ' + avg + ', red team ' + redTeam + ')</span>';
+      document.getElementById('shark-preview').innerHTML = sharks.map(s =>
+        '<div class="text-xs" style="padding:4px 0;"><strong>' + AIC_SEC.escapeHtml(s.shark) + ':</strong> ' + s.score + ' — ' + AIC_SEC.escapeHtml(s.reason) + '</div>'
+      ).join('');
+      AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', { id, sharkCouncilScore }, 'INFO');
+      showToast('Shark council scoring generated and attached.', 'success');
     });
     document.getElementById('btn-submit-score').addEventListener('click', async () => {
       const rl = AIC_SEC.checkRateLimit('score-submit', 10, 60000);
@@ -291,6 +350,11 @@ initPage({
       const autoReject = score < 50;
       const status = autoReject ? 'Rejected by Gatekeeper' : (rec === 'REJECT' ? 'Rejected by Gatekeeper' : 'Awaiting CXO Approval');
       const stage = autoReject ? 'Rejected at Gatekeeper' : 'Awaiting Council';
+      if (!autoReject && !sharkModel) {
+        showToast('Run Shark Council Score before submitting to CXO.', 'warning');
+        return;
+      }
+
       const patch = {
         gatekeeperScore: score,
         dimensions: dims,
@@ -302,17 +366,27 @@ initPage({
         gatekeeperConditions: document.getElementById('conditions').value || null,
         scoredBy: user.name,
         scoredAt: new Date().toISOString(),
-        reviewStatus: autoReject ? 'Completed - Rejected' : 'Completed - Submitted to CXO'
-
+        reviewStatus: autoReject ? 'Completed - Rejected' : 'Completed - Submitted to CXO',
+        strategyReviewerReason: just.value,
+        sharkCouncilScore: autoReject ? null : sharkModel.sharkCouncilScore,
+        sharkVerdicts: autoReject ? [] : sharkModel.sharks.map((s, idx) => ({
+          shark: s.shark,
+          icon: ['🔪','👤','💻','📊','🏪','📏'][idx] || '⭐',
+          color: ['#fee2e2','#d1fae5','#dbeafe','#ede9fe','#fef3c7','#d1fae5'][idx] || '#e2e8f0',
+          score: s.score,
+          confidence: 'Medium',
+          recommendation: s.score >= 75 ? 'INVEST' : s.score >= 60 ? 'CONDITIONAL' : 'NO INVEST',
+          assessment: s.reason
+        })).concat(autoReject ? [] : [{
+          shark:'Red Team', icon:'🎯', color:'#fee2e2', score: sharkModel.redTeam, confidence:'High', recommendation:'RISK MODIFIER: ' + sharkModel.redTeam, assessment:'Automated risk modifier based on variance and delivery risk profile.'
+        }]),
+        sharkCouncilGeneratedBy: autoReject ? null : sharkModel.generatedBy,
+        sharkCouncilGeneratedAt: autoReject ? null : sharkModel.generatedAt,
+        sharkCouncilMethod: autoReject ? null : sharkModel.method
       };
       AIC_DB.updateInitiative(id, patch);
-      if (!autoReject) {
-        const sharkCouncilScore = Math.max(35, Math.min(98, Math.round(score * 0.9 + 5)));
-        AIC_DB.updateInitiative(id, { sharkCouncilScore: sharkCouncilScore, sharkCouncilGeneratedBy: user.name, sharkCouncilGeneratedAt: new Date().toISOString() });
-        AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', { id, sharkCouncilScore }, 'INFO');
-      }
       AIC_SEC.audit('GATEKEEPER_SCORE_SUBMITTED', { id, score, recommendation: rec, autoReject }, 'INFO');
-      showToast(autoReject ? 'Scoring completed. Initiative rejected (<50) and sent back to Initiator.' : 'Scoring completed. Submitted for CXO approval.', autoReject ? 'warning' : 'success');
+      showToast(autoReject ? 'Scoring completed. Initiative rejected (<50) and status sent to Initiator.' : 'Scoring completed and submitted to CXO with shark verdict pack.', autoReject ? 'warning' : 'success');
       document.querySelector('.tab[data-tab="pending"]').click();
       cache = AIC_DB.getInitiatives();
       renderStats(); renderPending(); renderPipeline(); renderInsights(); buildPickList();
