@@ -17,6 +17,10 @@
 
   <!-- Hero / brand panel -->
   <section class="login-hero">
+    <div class="hero-style-switch" aria-label="Landing style switcher">
+      <button id="style-executive" class="style-chip active" type="button">Executive</button>
+      <button id="style-modern" class="style-chip" type="button">Modern</button>
+    </div>
     <div class="login-brand">
       <div class="logo-mark">AIC</div>
       <div>
@@ -99,6 +103,23 @@
 <script src="js/app.js"></script>
 <script>
 (function () {
+  const body = document.body;
+  const savedStyle = localStorage.getItem('aic_login_style') || 'executive';
+  body.classList.add(savedStyle === 'modern' ? 'login-theme-modern' : 'login-theme-executive');
+  const styleExecutive = document.getElementById('style-executive');
+  const styleModern = document.getElementById('style-modern');
+  function setStyle(mode) {
+    const isModern = mode === 'modern';
+    body.classList.toggle('login-theme-modern', isModern);
+    body.classList.toggle('login-theme-executive', !isModern);
+    styleExecutive.classList.toggle('active', !isModern);
+    styleModern.classList.toggle('active', isModern);
+    localStorage.setItem('aic_login_style', mode);
+  }
+  setStyle(savedStyle === 'modern' ? 'modern' : 'executive');
+  styleExecutive.addEventListener('click', () => setStyle('executive'));
+  styleModern.addEventListener('click', () => setStyle('modern'));
+
   // populate demo user selector grouped by role
   const select = document.getElementById('demo-user');
   const users = AIC_DB.getUsers();
