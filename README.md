@@ -207,6 +207,16 @@ Detailed architecture and enterprise design documents are available under `docs/
 - `docs/DEPLOY-FROM-ANY-NETWORK.md` — publish/share runbook
 - `env-config.example.js` — runtime env injection example
 
+
+## Free hosting (no Azure, no credit card)
+
+You can publish this portal immediately on free hosting:
+
+- **Vercel (recommended):** see `docs/FREE-HOSTING-SETUP.md`
+- **Netlify (backup):** see `docs/FREE-HOSTING-SETUP.md`
+
+This is ideal for CTO/manager demos while Azure subscription setup is pending.
+
 ## Production deployment
 
 See [`AZURE-DEPLOY.md`](AZURE-DEPLOY.md) for the full 14-section runbook covering:

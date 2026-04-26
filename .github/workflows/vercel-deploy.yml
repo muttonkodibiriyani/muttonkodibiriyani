@@ -1,0 +1,37 @@
+name: Vercel Deploy (Free Hosting)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target"
+        required: true
+        type: choice
+        options: [preview, production]
+        default: preview
+  push:
+    branches:
+      - cursor/build-aic-portal-7019
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Pull Vercel env
+        run: vercel pull --yes --environment=${{ github.event.inputs.target || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (static)
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        run: |
+          if [ "${{ github.event.inputs.target }}" = "production" ]; then
+            vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+          fi
