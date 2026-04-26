@@ -17,7 +17,7 @@ Use these preloaded users on `index.html` -> **Continue as Demo User**:
 | Faisal Al-Tamimi | faisal.tamimi@alshaya.com | Investment_Committee | cxo-dashboard.html |
 | Sarah Al-Rashidi | sarah.rashidi@alshaya.com | Strategy_Reviewer | strategy-dashboard.html |
 | Dina Al-Saleh | dina.saleh@alshaya.com | Initiative_Submitter | initiator-dashboard.html |
-| Omar Al-Hassan | omar.hassan@alshaya.com | Portfolio_Viewer | cxo-dashboard.html |
+| Omar Al-Hassan | omar.hassan@alshaya.com | Strategy_Reviewer | strategy-dashboard.html |
 
 > Demo credentials are profile selections (no password) in demo mode. For production identity, use Microsoft Entra login.
 

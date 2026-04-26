@@ -35,7 +35,7 @@
 
 <div class="main-wrap">
   <header class="top-bar">
-    <h1>Investment Committee — Portfolio</h1>
+    <h1>CXO Council — Portfolio Oversight</h1>
     <div class="top-actions">
       <button id="btn-view" class="btn btn-secondary"><i class="fas fa-table-list"></i> Kanban</button>
       <button id="btn-export" class="btn btn-secondary"><i class="fas fa-download"></i> Export</button>
@@ -132,7 +132,7 @@
 <script src="js/app.js"></script>
 <script>
 initPage({
-  allowedRoles: ['Investment_Committee','Strategy_Reviewer','Platform_Admin','Portfolio_Viewer'],
+  allowedRoles: ['Investment_Committee','Platform_Admin'],
   onReady: async function (user) {
     let cache = AIC_DB.getInitiatives();
     let kanbanMode = false;
@@ -163,9 +163,28 @@ initPage({
         '<td>' + (i.councilScore != null ? '<span class="badge ' + scoreClass(i.councilScore) + '">' + i.councilScore + '</span>' : '—') + '</td>' +
         '<td>' + formatCurrency(i.budgetRequested,'USD',true) + '</td>' +
         '<td>' + formatCurrency(i.budgetSpent,'USD',true) + '</td>' +
-        '<td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button></td></tr>'
+        '<td><button class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></button>' + (AIC_SEC.hasRole(user.role, 'Investment_Committee') && (i.status === 'Approved' || i.status === 'Rejected') ? ' <button class="btn btn-sm btn-danger" data-veto="' + AIC_SEC.encodeAttr(i.id) + '"><i class="fas fa-gavel"></i> Veto</button>' : '') + '</td></tr>'
       ).join('');
       tb.querySelectorAll('[data-go]').forEach(t => t.addEventListener('click', () => window.location.href = 'initiative-detail.html?id=' + encodeURIComponent(t.getAttribute('data-go'))));
+      tb.querySelectorAll('[data-veto]').forEach(b => b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = b.getAttribute('data-veto');
+        const initiative = AIC_DB.getInitiative(id);
+        const ok = await showConfirm('CXO Veto Decision', 'You are about to override current decision for <strong>' + AIC_SEC.escapeHtml(initiative.title) + '</strong>. Continue?', 'Proceed');
+        if (!ok) return;
+        const newDecision = initiative.status === 'Approved' ? 'Rejected (CXO Veto)' : 'Approved (CXO Veto)';
+        const newStatus = initiative.status === 'Approved' ? 'Rejected' : 'Approved';
+        AIC_DB.updateInitiative(id, {
+          status: newStatus,
+          decision: newDecision,
+          cxoVetoBy: user.name,
+          cxoVetoAt: new Date().toISOString()
+        });
+        AIC_SEC.audit('CXO_VETO_OVERRIDE', { id, previousStatus: initiative.status, newStatus }, 'WARN');
+        showToast('CXO veto override applied', 'warning');
+        cache = AIC_DB.getInitiatives();
+        renderStats(); renderTable(); renderCharts();
+      }));
     }
 
     function renderKanban() {

@@ -20,7 +20,7 @@ If the agent stops, say "continue" until all files are present.
 
 > You are an expert full-stack Azure developer. Build the complete **Alshaya Investment Council Portal** version 2.1.0 from scratch. The portal is an enterprise investment governance platform for Alshaya Group's 70+ retail brands across the GCC. It uses pure HTML5/CSS3/vanilla JS (no build tools), is hosted on Azure Static Web Apps with Microsoft Entra ID auth, and proxies all data access through Azure API Management to Azure Cosmos DB.
 >
-> **Roles** (5): Initiative_Submitter, Strategy_Reviewer, Investment_Committee, Portfolio_Viewer, Platform_Admin.
+> **Roles** (4): Initiative_Submitter, Strategy_Reviewer (Gatekeeper), Investment_Committee (CXO Council), Platform_Admin.
 >
 > **Workflow**: Draft → Submitted → Gatekeeper Review → Validated → Council Vote → Approved/Conditional/Rejected → Stage 0 (Discovery, 4%) → Stage 1 (MVP, 30%) → Stage 2 (Pilot, 40%) → Stage 3 (Rollout, 26%) → Completed.
 >

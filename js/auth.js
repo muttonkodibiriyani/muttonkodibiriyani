@@ -118,7 +118,7 @@ const AIC_AUTH = (function () {
       canReview: AIC_SEC.hasRole(role, 'Strategy_Reviewer'),
       canApprove: AIC_SEC.hasRole(role, 'Investment_Committee'),
       canAdmin: role === 'Platform_Admin',
-      isReadOnly: role === 'Portfolio_Viewer',
+      isReadOnly: false,
       sessionStart: new Date().toISOString(),
       loginMethod: 'DemoMode'
     };
@@ -153,7 +153,7 @@ const AIC_AUTH = (function () {
       canReview: AIC_SEC.hasRole(primaryRole, 'Strategy_Reviewer'),
       canApprove: AIC_SEC.hasRole(primaryRole, 'Investment_Committee'),
       canAdmin: primaryRole === 'Platform_Admin',
-      isReadOnly: primaryRole === 'Portfolio_Viewer',
+      isReadOnly: false,
       sessionStart: new Date().toISOString(),
       loginMethod: 'AzureAD'
     };
@@ -162,7 +162,7 @@ const AIC_AUTH = (function () {
   }
 
   function _selectPrimary(roles) {
-    const ordered = ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter','Portfolio_Viewer'];
+    const ordered = ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter'];
     for (const r of ordered) if (roles.indexOf(r) >= 0) return r;
     return roles[0] || null;
   }

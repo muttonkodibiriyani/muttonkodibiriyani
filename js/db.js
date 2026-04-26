@@ -330,7 +330,7 @@ const AIC_DB = (function () {
       { id:'usr-004', email:'admin@alshaya.com',         name:'Khalid Al-Mansouri',  role:'Platform_Admin',       department:'IT Platform',         title:'Platform Administrator',      initials:'KM', active:true },
       { id:'usr-005', email:'tariq.mansour@alshaya.com', name:'Tariq Mansour',       role:'Initiative_Submitter', department:'Ecommerce',           title:'Head of Digital Operations',  initials:'TM', active:true },
       { id:'usr-006', email:'sarah.rashidi@alshaya.com', name:'Sarah Al-Rashidi',    role:'Strategy_Reviewer',    department:'Corporate Strategy',  title:'Strategy Director',           initials:'SR', active:true },
-      { id:'usr-007', email:'omar.hassan@alshaya.com',   name:'Omar Al-Hassan',      role:'Portfolio_Viewer',     department:'Finance',             title:'Finance Business Partner',    initials:'OH', active:true }
+      { id:'usr-007', email:'omar.hassan@alshaya.com',   name:'Omar Al-Hassan',      role:'Strategy_Reviewer',     department:'Finance',             title:'Finance Business Partner',    initials:'OH', active:true }
     ];
   }
 

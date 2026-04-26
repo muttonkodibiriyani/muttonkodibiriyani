@@ -38,8 +38,9 @@ const AIC_CONFIG = {
     ADMIN:     'Platform_Admin',
     COMMITTEE: 'Investment_Committee',
     STRATEGY:  'Strategy_Reviewer',
-    VIEWER:    'Portfolio_Viewer',
-    SUBMITTER: 'Initiative_Submitter'
+    SUBMITTER: 'Initiative_Submitter',
+    // Gatekeeper = Strategy_Reviewer
+    GATEKEEPER: 'Strategy_Reviewer'
   },
   app: {
     name: 'Alshaya Investment Council',

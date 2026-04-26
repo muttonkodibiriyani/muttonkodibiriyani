@@ -82,7 +82,6 @@ cat > app-roles.json <<EOF
   {"allowedMemberTypes":["User"],"description":"Vote on investments","displayName":"Investment Committee","id":"$(uuidgen)","isEnabled":true,"value":"Investment_Committee"},
   {"allowedMemberTypes":["User"],"description":"Gatekeeper scoring","displayName":"Strategy Reviewer","id":"$(uuidgen)","isEnabled":true,"value":"Strategy_Reviewer"},
   {"allowedMemberTypes":["User"],"description":"Submit and track","displayName":"Initiative Submitter","id":"$(uuidgen)","isEnabled":true,"value":"Initiative_Submitter"},
-  {"allowedMemberTypes":["User"],"description":"Read-only portfolio","displayName":"Portfolio Viewer","id":"$(uuidgen)","isEnabled":true,"value":"Portfolio_Viewer"}
 ]
 EOF
 az ad app update --id $APP_ID --app-roles @app-roles.json
@@ -264,7 +263,7 @@ SWA Standard tier provisions free managed TLS automatically once DNS is verified
 To grant a new user access:
 
 1. **Azure Portal → Entra ID → Enterprise Apps → AIC Investment Council Portal → Users and groups**
-2. Click **Add user/group**, choose the AAD user, assign the appropriate role (`Platform_Admin`, `Investment_Committee`, `Strategy_Reviewer`, `Initiative_Submitter`, or `Portfolio_Viewer`)
+2. Click **Add user/group**, choose the AAD user, assign the appropriate role (`Platform_Admin`, `Investment_Committee`, `Strategy_Reviewer`, `Initiative_Submitter`)
 3. User can sign in immediately — no portal-side setup needed
 
 To add a Platform Admin from inside the portal (after first admin is set up):

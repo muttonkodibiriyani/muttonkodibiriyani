@@ -58,7 +58,7 @@
               <option>Investment_Committee</option>
               <option>Strategy_Reviewer</option>
               <option>Initiative_Submitter</option>
-              <option>Portfolio_Viewer</option>
+              
             </select>
           </div>
           <button id="btn-add-user" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add User</button>
@@ -78,7 +78,7 @@
         <div class="card-header"><h3 class="card-title">Role × Permission Matrix</h3></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Permission</th><th>Submitter</th><th>Strategy</th><th>Committee</th><th>Viewer</th><th>Admin</th></tr></thead>
+            <thead><tr><th>Permission</th><th>Initiator</th><th>Strategy</th><th>CXO</th><th>Admin</th></tr></thead>
             <tbody id="tbody-perms"></tbody>
           </table>
         </div>
@@ -182,7 +182,7 @@
           <option value="Investment_Committee">Investment Committee — vote on investments</option>
           <option value="Strategy_Reviewer">Strategy Reviewer — gatekeeper scoring</option>
           <option value="Initiative_Submitter">Initiative Submitter — submit and track</option>
-          <option value="Portfolio_Viewer">Portfolio Viewer — read-only</option>
+          
         </select>
       </div>
       <div class="form-group">
@@ -300,7 +300,7 @@ initPage({
         { key:'gk_score', label:'Submit gatekeeper score', sub:0, str:1, com:1, vw:0, adm:1 },
         { key:'council_vote', label:'Cast council vote', sub:0, str:0, com:1, vw:0, adm:1 },
         { key:'stage_approve', label:'Approve stage gates', sub:0, str:0, com:1, vw:0, adm:1 },
-        { key:'view_portfolio', label:'View full portfolio', sub:0, str:1, com:1, vw:1, adm:1 },
+        { key:'view_portfolio', label:'View full portfolio', sub:0, str:1, com:1, vw:0, adm:1 },
         { key:'view_audit', label:'View audit log', sub:0, str:0, com:0, vw:0, adm:1 },
         { key:'manage_users', label:'Manage users & roles', sub:0, str:0, com:0, vw:0, adm:1 },
         { key:'export_data', label:'Export portfolio data', sub:0, str:1, com:1, vw:1, adm:1 },
@@ -309,7 +309,7 @@ initPage({
       const cell = (v) => v ? '<i class="fas fa-circle-check text-success"></i>' : '<i class="fas fa-circle-xmark text-muted"></i>';
       document.getElementById('tbody-perms').innerHTML = perms.map(p =>
         '<tr><td><strong>' + AIC_SEC.escapeHtml(p.label) + '</strong></td>' +
-        '<td>' + cell(p.sub) + '</td><td>' + cell(p.str) + '</td><td>' + cell(p.com) + '</td><td>' + cell(p.vw) + '</td><td>' + cell(p.adm) + '</td></tr>'
+        '<td>' + cell(p.sub) + '</td><td>' + cell(p.str) + '</td><td>' + cell(p.com) + '</td><td>' + cell(p.adm) + '</td></tr>'
       ).join('');
     }
 

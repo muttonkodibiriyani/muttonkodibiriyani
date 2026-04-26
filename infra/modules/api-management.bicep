@@ -94,7 +94,6 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-pre
           <value>Investment_Committee</value>
           <value>Strategy_Reviewer</value>
           <value>Initiative_Submitter</value>
-          <value>Portfolio_Viewer</value>
         </claim>
       </required-claims>
     </validate-jwt>

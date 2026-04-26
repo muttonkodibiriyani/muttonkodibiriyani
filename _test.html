@@ -55,7 +55,7 @@ function runTests() {
     eq(list.length, 5, 'got ' + list.length);
     return list.length + ' initiatives';
   });
-  t('DB has 7 users across all roles', () => {
+  t('DB has 7 users across 4 roles', () => {
     const users = AIC_DB.getUsers();
     eq(users.length, 7);
     const roles = new Set(users.map(u => u.role));
@@ -63,11 +63,10 @@ function runTests() {
     assert(roles.has('Investment_Committee'));
     assert(roles.has('Strategy_Reviewer'));
     assert(roles.has('Initiative_Submitter'));
-    assert(roles.has('Portfolio_Viewer'));
     return 'all 5 roles present';
   });
   t('Authentication: each role has at least one user', () => {
-    ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter','Portfolio_Viewer'].forEach(r => {
+    ['Platform_Admin','Investment_Committee','Strategy_Reviewer','Initiative_Submitter'].forEach(r => {
       const u = AIC_DB.getUsers().find(x => x.role === r);
       assert(u, 'missing user with role ' + r);
     });
@@ -129,7 +128,7 @@ function runTests() {
     assert(AIC_SEC.canAccess({ role:'Platform_Admin' }, ['Platform_Admin']));
     return 'admin universal access';
   });
-  t('RBAC: Submitter cannot access admin page', () => {
+  t('RBAC: Initiator cannot access admin page', () => {
     assert(!AIC_SEC.canAccess({ role:'Initiative_Submitter' }, ['Platform_Admin']));
     return 'denied as expected';
   });

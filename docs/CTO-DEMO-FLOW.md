@@ -39,9 +39,9 @@ Use this script to demo the platform in 15–20 minutes.
 3. Open **Audit Log** and filter events for actions above
 4. Export audit CSV and initiatives CSV
 
-## 6) Viewer Flow (Omar Al-Hassan)
-1. Login as **Omar Al-Hassan (Portfolio_Viewer)**
-2. Confirm read-only portfolio visibility
+## 6) Additional Strategy Monitoring (Omar Al-Hassan)
+1. Login as **Omar Al-Hassan (Strategy_Reviewer)**
+2. Confirm strategy can monitor all initiative progress
 3. Confirm no admin access (403 on `admin.html`)
 
 ## Evidence to capture for CTO sign-off

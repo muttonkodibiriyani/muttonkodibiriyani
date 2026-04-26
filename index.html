@@ -97,7 +97,6 @@
     'Investment_Committee': 'Investment Committee',
     'Strategy_Reviewer': 'Strategy Reviewers',
     'Initiative_Submitter': 'Initiative Submitters',
-    'Portfolio_Viewer': 'Portfolio Viewers'
   };
   Object.keys(groups).forEach(role => {
     const list = users.filter(u => u.role === role);
@@ -141,7 +140,6 @@
       case 'Investment_Committee': return 'cxo-dashboard.html';
       case 'Strategy_Reviewer':    return 'strategy-dashboard.html';
       case 'Initiative_Submitter': return 'initiator-dashboard.html';
-      case 'Portfolio_Viewer':     return 'cxo-dashboard.html';
       default: return 'portal-router.html';
     }
   }

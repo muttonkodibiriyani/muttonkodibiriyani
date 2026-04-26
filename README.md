@@ -71,7 +71,7 @@
 | `403.html` | anonymous + authenticated |
 | `initiator-dashboard.html` | Initiative_Submitter, Strategy_Reviewer, Investment_Committee, Platform_Admin |
 | `strategy-dashboard.html` | Strategy_Reviewer, Investment_Committee, Platform_Admin |
-| `cxo-dashboard.html` | Investment_Committee, Strategy_Reviewer, Portfolio_Viewer, Platform_Admin |
+| `cxo-dashboard.html` | Investment_Committee, Platform_Admin |
 | `submit-initiative.html` | Initiative_Submitter, Strategy_Reviewer, Investment_Committee, Platform_Admin |
 | `initiative-detail.html` | all authenticated |
 | `admin.html` | Platform_Admin only |
@@ -174,7 +174,7 @@ On the landing page, scroll to **"Continue as Demo User"**, pick a profile, and 
 | Faisal Al-Tamimi | Investment Committee | `cxo-dashboard.html` |
 | Sarah Al-Rashidi | Strategy Reviewer | `strategy-dashboard.html` |
 | Dina Al-Saleh | Initiative Submitter | `initiator-dashboard.html` |
-| Omar Al-Hassan | Portfolio Viewer | `cxo-dashboard.html` |
+| Omar Al-Hassan | Strategy Reviewer | `strategy-dashboard.html` |
 
 ### Verify the build
 
@@ -207,6 +207,16 @@ Detailed architecture and enterprise design documents are available under `docs/
 - `docs/DEPLOY-FROM-ANY-NETWORK.md` — publish/share runbook
 - `env-config.example.js` — runtime env injection example
 
+
+
+## Role model (4 roles)
+
+- **Initiator** (`Initiative_Submitter`) — create and submit only
+- **Strategy Reviewer / Gatekeeper** (`Strategy_Reviewer`) — review, validate, feedback, progress monitoring
+- **CXO Council** (`Investment_Committee`) — council score, decision, stage gates, veto override
+- **Platform Admin** (`Platform_Admin`) — users/roles/access/security/audit/system control
+
+See `docs/ROLE-MODEL-AND-FLOW.md` for detailed permissions and lifecycle flow.
 
 ## Free hosting (no Azure, no credit card)
 

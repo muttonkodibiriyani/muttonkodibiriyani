@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Gatekeeper Review — AIC Portal</title>
+  <title>Strategy Gatekeeper Review — AIC Portal</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="css/design-system.css" />
@@ -37,13 +37,14 @@
 
 <div class="main-wrap">
   <header class="top-bar">
-    <h1>Gatekeeper Review</h1>
+    <h1>Strategy Gatekeeper Review</h1>
     <div class="top-actions">
       <button id="btn-jump" class="btn btn-secondary"><i class="fas fa-bullseye"></i> Score Pending</button>
     </div>
   </header>
   <main class="page-body">
     <div class="stat-grid" id="stat-grid"></div>
+    <div class="card mb-md"><strong>Gatekeeper:</strong> Strategy Reviewer is the gatekeeper. Council shark scoring happens only after initiative status becomes <em>Validated / Awaiting Council</em>.</div>
 
     <div class="tabs" id="tabs">
       <button class="tab active" data-tab="pending">Pending Review</button>
@@ -155,7 +156,7 @@
 <script src="js/app.js"></script>
 <script>
 initPage({
-  allowedRoles: ['Strategy_Reviewer','Investment_Committee','Platform_Admin'],
+  allowedRoles: ['Strategy_Reviewer','Platform_Admin'],
   onReady: async function (user) {
     let cache = AIC_DB.getInitiatives();
 

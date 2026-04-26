@@ -19,8 +19,7 @@ const AIC_SEC = (function () {
     'Platform_Admin':       100,
     'Investment_Committee':  80,
     'Strategy_Reviewer':     60,
-    'Initiative_Submitter':  40,
-    'Portfolio_Viewer':      20
+    'Initiative_Submitter':  40
   });
 
   const ALLOWED_REDIRECT_PAGES = [

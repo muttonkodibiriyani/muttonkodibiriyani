@@ -79,7 +79,7 @@
 <script src="js/app.js"></script>
 <script>
 initPage({
-  allowedRoles: ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Portfolio_Viewer','Platform_Admin'],
+  allowedRoles: ['Initiative_Submitter','Strategy_Reviewer','Investment_Committee','Platform_Admin'],
   onReady: async function (user) {
     const id = getParam('id');
     if (!id) { showToast('No initiative specified', 'error'); window.location.href = 'initiator-dashboard.html'; return; }

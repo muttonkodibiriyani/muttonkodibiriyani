@@ -1,24 +1,114 @@
 {
   "routes": [
-    { "route": "/admin.html", "allowedRoles": ["Platform_Admin"] },
-    { "route": "/cxo-dashboard.html", "allowedRoles": ["Investment_Committee","Strategy_Reviewer","Platform_Admin","Portfolio_Viewer"] },
-    { "route": "/strategy-dashboard.html", "allowedRoles": ["Strategy_Reviewer","Investment_Committee","Platform_Admin"] },
-    { "route": "/initiator-dashboard.html", "allowedRoles": ["Initiative_Submitter","Investment_Committee","Strategy_Reviewer","Platform_Admin"] },
-    { "route": "/submit-initiative.html", "allowedRoles": ["Initiative_Submitter","Investment_Committee","Strategy_Reviewer","Platform_Admin"] },
-    { "route": "/initiative-detail.html", "allowedRoles": ["authenticated"] },
-    { "route": "/ms-guide.html", "allowedRoles": ["authenticated"] },
-    { "route": "/api/*", "allowedRoles": ["authenticated"] },
-    { "route": "/.auth/login/aad", "allowedRoles": ["anonymous","authenticated"] },
-    { "route": "/.auth/logout", "allowedRoles": ["anonymous","authenticated"] },
-    { "route": "/login", "rewrite": "/.auth/login/aad?post_login_redirect_uri=/portal-router.html" },
-    { "route": "/index.html", "allowedRoles": ["anonymous","authenticated"] },
-    { "route": "/", "allowedRoles": ["anonymous","authenticated"], "rewrite": "/index.html" },
-    { "route": "/403.html", "allowedRoles": ["anonymous","authenticated"] },
-    { "route": "/portal-router.html", "allowedRoles": ["authenticated"] }
+    {
+      "route": "/admin.html",
+      "allowedRoles": [
+        "Platform_Admin"
+      ]
+    },
+    {
+      "route": "/cxo-dashboard.html",
+      "allowedRoles": [
+        "Investment_Committee",
+        "Platform_Admin"
+      ]
+    },
+    {
+      "route": "/strategy-dashboard.html",
+      "allowedRoles": [
+        "Strategy_Reviewer",
+        "Platform_Admin"
+      ]
+    },
+    {
+      "route": "/initiator-dashboard.html",
+      "allowedRoles": [
+        "Initiative_Submitter",
+        "Strategy_Reviewer",
+        "Platform_Admin"
+      ]
+    },
+    {
+      "route": "/submit-initiative.html",
+      "allowedRoles": [
+        "Initiative_Submitter",
+        "Strategy_Reviewer"
+      ]
+    },
+    {
+      "route": "/initiative-detail.html",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/ms-guide.html",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/.auth/login/aad",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/.auth/logout",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/login",
+      "rewrite": "/.auth/login/aad?post_login_redirect_uri=/portal-router.html"
+    },
+    {
+      "route": "/index.html",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ],
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/403.html",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/portal-router.html",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    }
   ],
   "responseOverrides": {
-    "401": { "redirect": "/.auth/login/aad?post_login_redirect_uri=%2Fportal-router.html", "statusCode": 302 },
-    "403": { "rewrite": "/403.html", "statusCode": 403 }
+    "401": {
+      "redirect": "/.auth/login/aad?post_login_redirect_uri=%2Fportal-router.html",
+      "statusCode": 302
+    },
+    "403": {
+      "rewrite": "/403.html",
+      "statusCode": 403
+    }
   },
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
@@ -31,9 +121,14 @@
   },
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/api/*","*.{css,js,json,png,jpg,svg,ico}"]
+    "exclude": [
+      "/api/*",
+      "*.{css,js,json,png,jpg,svg,ico}"
+    ]
   },
-  "platform": { "apiRuntime": "node:20" },
+  "platform": {
+    "apiRuntime": "node:20"
+  },
   "auth": {
     "identityProviders": {
       "azureActiveDirectory": {
@@ -43,7 +138,11 @@
           "clientIdSettingName": "AZURE_CLIENT_ID",
           "clientSecretSettingName": "AZURE_CLIENT_SECRET"
         },
-        "login": { "loginParameters": ["scope=openid profile email offline_access User.Read"] }
+        "login": {
+          "loginParameters": [
+            "scope=openid profile email offline_access User.Read"
+          ]
+        }
       }
     }
   }

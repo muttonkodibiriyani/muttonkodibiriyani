@@ -78,7 +78,6 @@
 | Investment_Committee | 80 | ✓ | ✓ | ✓ | ✓ | — |
 | Strategy_Reviewer | 60 | ✓ | ✓ | — | — | — |
 | Initiative_Submitter | 40 | ✓ | — | — | — | — |
-| Portfolio_Viewer | 20 | — | — | — | — | — |
 
 Enforcement points:
 1. Azure Static Web App `staticwebapp.config.json` — page-level
