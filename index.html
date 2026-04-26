@@ -15,74 +15,74 @@
 
 <div class="login-shell">
 
-  <!-- Hero / brand panel -->
+  <!-- Brand / value panel -->
   <section class="login-hero">
     <div class="login-brand">
       <div class="logo-mark">AIC</div>
-      <div>
+      <div class="login-brand-text">
         <h2>Alshaya Investment Council</h2>
         <div class="brand-sub">Strategic Technology Investments</div>
       </div>
     </div>
 
     <div class="login-headline">
-      <h1>One platform.<br/>Rigorous decisions.</h1>
-      <p class="tagline">Where Alshaya's 70+ retail brands turn ideas into measurable, capital-efficient outcomes.</p>
-      <p class="sub-tagline">Enterprise governance for technology investment — simple, transparent, and accountable.</p>
+      <span class="hero-eyebrow">Investment Governance Platform</span>
+      <h1>Disciplined investment.<span class="accent-dot">.</span><br/>Measurable outcomes.</h1>
+      <p class="tagline">A single source of truth for every initiative — from idea to outcome.</p>
 
-      <div class="benchmarks-strip" aria-label="Enterprise benchmarks">
-        <div class="text-xs benchmarks-label">Enterprise Benchmarks</div>
-        <div class="benchmarks-grid">
-          <div class="benchmark-item"><div class="metric">5D</div><div class="metric-sub">Gatekeeper model</div></div>
-          <div class="benchmark-item"><div class="metric">SLA</div><div class="metric-sub">Review workflow</div></div>
-          <div class="benchmark-item"><div class="metric">Audit</div><div class="metric-sub">Traceability</div></div>
-        </div>
-      </div>
-
-      <ul class="feature-list">
-        <li><span class="feat-icon"><i class="fas fa-shield-halved"></i></span>Enterprise-grade security with Microsoft Entra ID, RBAC, and PDPL alignment</li>
-        <li><span class="feat-icon"><i class="fas fa-chart-pie"></i></span>5-dimension gatekeeper scoring with 6-shark committee review</li>
-        <li><span class="feat-icon"><i class="fas fa-money-bill-trend-up"></i></span>Stage-gated capital release from Discovery to Full Rollout</li>
-        <li><span class="feat-icon"><i class="fas fa-microscope"></i></span>Measurement plans, bear-case narratives, and outcome tracking</li>
+      <ul class="value-list">
+        <li><span class="vl-num">01</span><div><div class="vl-title">Five-dimension gatekeeper scoring</div><div class="vl-desc">Financial, customer, technical, strategic, and operational rigor — weighted and auditable.</div></div></li>
+        <li><span class="vl-num">02</span><div><div class="vl-title">Six-shark committee review</div><div class="vl-desc">Independent simulated panel verdicts, confidence bands, and red-team risk modifiers.</div></div></li>
+        <li><span class="vl-num">03</span><div><div class="vl-title">Stage-gated capital release</div><div class="vl-desc">Discovery → MVP → Scaled Pilot → Full Rollout, with explicit exit criteria.</div></div></li>
+        <li><span class="vl-num">04</span><div><div class="vl-title">Measurement plans &amp; bear cases</div><div class="vl-desc">Owners, baselines, targets, and pre/post attribution for every approved investment.</div></div></li>
       </ul>
+
+      <div class="trust-row">
+        <div class="trust-item"><i class="fas fa-shield-halved"></i><span>Microsoft Entra ID</span></div>
+        <div class="trust-item"><i class="fas fa-lock"></i><span>RBAC &amp; PDPL aligned</span></div>
+        <div class="trust-item"><i class="fas fa-clipboard-list"></i><span>Full audit trail</span></div>
+      </div>
     </div>
 
     <div class="login-foot">
-      <span>v2.1.0 · INTERNAL-CONFIDENTIAL</span>
+      <span>v2.1.0 · Internal-Confidential</span>
       <span>© 2026 Alshaya Group</span>
     </div>
   </section>
 
-  <!-- Login panel -->
+  <!-- Sign-in panel -->
   <section class="login-panel">
     <div class="login-panel-inner">
-      <h2>Sign In</h2>
-      <p class="login-sub">Use one of 4 role-based profiles to experience the full enterprise workflow end-to-end.</p>
-
-      <div class="form-group">
-        <label class="form-label" for="aad-email">Corporate Email</label>
-        <input id="aad-email" type="email" placeholder="firstname.lastname@alshaya.com" autocomplete="username" />
+      <div class="signin-head">
+        <h2>Sign in to AIC Portal</h2>
+        <p class="login-sub">Use your corporate identity, or explore the platform with a role-based demo profile.</p>
       </div>
 
-      <button id="btn-aad" class="btn btn-primary btn-block btn-lg">
-        <i class="fab fa-microsoft"></i> Sign in with Azure AD
+      <button id="btn-aad" class="btn btn-primary btn-block btn-lg btn-aad">
+        <i class="fab fa-microsoft"></i> Continue with Microsoft Entra ID
       </button>
 
-      <div class="login-divider">— or sign in for demo —</div>
+      <div class="form-group mt-md">
+        <label class="form-label" for="aad-email">Corporate Email</label>
+        <input id="aad-email" type="email" placeholder="firstname.lastname@alshaya.com" autocomplete="username" />
+        <small class="form-help">SSO is restricted to verified Alshaya tenants.</small>
+      </div>
+
+      <div class="login-divider"><span>or explore as a role</span></div>
 
       <div class="form-group">
         <div class="flex justify-between items-center mb-sm">
-          <label class="form-label" style="margin:0;">Choose Demo Profile</label>
+          <label class="form-label" style="margin:0;">Demo Profiles</label>
           <button id="btn-reset-demo" type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;"><i class="fas fa-rotate"></i> Reset demo data</button>
         </div>
         <div id="demo-cards" class="demo-cards" aria-label="Demo profiles"></div>
         <small class="form-help" style="margin-top:8px;">Demo mode uses local browser storage only. No data leaves your device.</small>
       </div>
 
-      <p class="text-xs text-muted mt-md text-center">
-        Need access? Email
-        <a href="mailto:aic-support@alshaya.com">aic-support@alshaya.com</a>
-      </p>
+      <div class="signin-foot">
+        <span><i class="fas fa-shield-halved"></i> Encrypted in transit</span>
+        <a href="mailto:aic-support@alshaya.com">Need access?</a>
+      </div>
     </div>
   </section>
 </div>
