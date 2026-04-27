@@ -125,7 +125,10 @@ jobs:
       (
         github.ref == 'refs/heads/develop' ||
         github.event.inputs.environment == 'staging'
-      )
+      ) &&
+      secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING != '' &&
+      vars.AZURE_WEBAPP_NAME_STAGING != '' &&
+      vars.APP_BASE_URL_STAGING != ''
     needs: [build-package]
     runs-on: ubuntu-latest
     environment: staging
@@ -174,7 +177,10 @@ jobs:
       (
         github.ref == 'refs/heads/main' ||
         github.event.inputs.environment == 'production'
-      )
+      ) &&
+      secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD != '' &&
+      vars.AZURE_WEBAPP_NAME_PROD != '' &&
+      vars.APP_BASE_URL_PROD != ''
     needs: [build-package]
     runs-on: ubuntu-latest
     environment: production
