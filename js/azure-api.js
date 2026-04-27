@@ -20,7 +20,6 @@ const AIC_API = (function () {
       'X-Client-App': 'AIC-Portal/' + AIC_CONFIG.app.version,
       'X-CSRF-Token': AIC_SEC.getCsrfToken()
     };
-    if (AIC_CONFIG.cosmos.apimSubscriptionKey) h['Ocp-Apim-Subscription-Key'] = AIC_CONFIG.cosmos.apimSubscriptionKey;
     if (_useReal()) {
       try {
         const token = await AIC_AUTH.getAccessToken();

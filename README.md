@@ -17,8 +17,8 @@
                         └────────────┬─────────────┘
                                      │  OIDC / PKCE
  ┌─────────────────┐    HTTPS        ▼
- │     Browser     │ ───────► Azure Static Web App
- │   (HTML/CSS/JS) │          (CDN + auth + routes)
+│     Browser     │ ───────► Azure App Service
+│   (HTML/CSS/JS) │          (Linux Node runtime + secure headers)
  └─────────────────┘                  │
           │                           │  Bearer token
           │                           ▼
@@ -52,7 +52,7 @@
 | Charts | Chart.js 4.4 |
 | Sanitization | DOMPurify 3.0 |
 | Auth | MSAL.js 3.10 (PKCE) |
-| Hosting | Azure Static Web Apps (Standard) |
+| Hosting | Azure App Service (Linux, Node 20) |
 | API gateway | Azure API Management |
 | Data store | Azure Cosmos DB (SQL API) |
 | Secrets | Azure Key Vault (Premium) |
@@ -261,7 +261,7 @@ The Cosmos DB master key is stored in Key Vault and **never** sent to the browse
 ├── js/                                # 6 JS modules (load order matters)
 ├── infra/                             # Bicep IaC (1 root + 8 modules)
 ├── .github/                           # CI/CD + ownership
-├── staticwebapp.config.json           # SWA route protection + headers
+├── staticwebapp.config.json           # legacy SWA policy reference
 ├── README.md
 ├── AZURE-DEPLOY.md
 ├── SECURITY.md

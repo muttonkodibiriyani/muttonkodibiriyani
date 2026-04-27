@@ -25,7 +25,7 @@ End-to-end runbook to deploy the Alshaya Investment Council portal to Azure. Ass
 
 ## 1. Architecture overview
 
-Browser ⇄ Azure Static Web App (Standard, AAD auth) ⇄ Azure API Management ⇄ Azure Cosmos DB (SQL API). All secrets live in Azure Key Vault. Telemetry funnels into Application Insights and Log Analytics.
+Browser ⇄ Azure App Service (Linux, Node 20) ⇄ Azure API Management ⇄ Azure Cosmos DB (SQL API). All secrets live in Azure Key Vault. Telemetry funnels into Application Insights and Log Analytics.
 
 The Cosmos master key never leaves the Azure boundary — APIM reads it from Key Vault at request time and adds it to outbound calls. Browsers only ever hold a short-lived AAD bearer token.
 
@@ -64,7 +64,7 @@ az login --tenant alshaya.onmicrosoft.com
 APP_ID=$(az ad app create \
   --display-name "AIC Investment Council Portal" \
   --sign-in-audience AzureADMyOrg \
-  --web-redirect-uris "https://aic-portal.alshaya.com/portal-router.html" "https://aic-portal.alshaya.com/.auth/login/aad/callback" \
+  --web-redirect-uris "https://aic-portal.alshaya.com/portal-router.html" \
   --query appId -o tsv)
 echo "Client ID: $APP_ID"
 
@@ -131,7 +131,8 @@ What gets deployed:
 - 1 Storage account (GRS, audit-exports container)
 - 1 Cosmos DB account (SQL API, geo-redundant UAE North + Central)
 - 1 APIM service (Standard tier in prod, Developer in staging)
-- 1 Static Web App (Standard tier)
+- 1 App Service Plan (Linux, P1v3 or equivalent)
+- 1 App Service Web App (Node 20)
 - 3 metric alerts (APIM 5xx, Cosmos throttling, exception count)
 
 ---
@@ -150,6 +151,41 @@ git push -u origin main
 
 ---
 
+## 5.1 Azure App Service configuration (required once)
+
+In the Azure Portal, open your staging and production web apps and set:
+
+- **Runtime stack**: Node 20 LTS (Linux)
+- **Startup command**: `node server.js`
+- **Always On**: Enabled
+- **HTTPS only**: Enabled
+- **Minimum TLS version**: 1.2
+
+For Deployment Center:
+
+1. Go to **Deployment Center** on the Web App.
+2. Select **Source: GitHub** and authorize repository access.
+3. Choose the branch (`develop` for staging, `main` for production).
+4. Keep GitHub Actions enabled (this repo workflow file is already configured).
+
+Runtime environment is also enforced by CI/CD on each deployment (`azure/appservice-settings`):
+
+- `linuxFxVersion`: `NODE|20-lts`
+- `appCommandLine`: `node server.js`
+- `minTlsVersion`: `1.2`
+- `http20Enabled`: `true`
+- `alwaysOn`: `true`
+- app settings: `WEBSITE_NODE_DEFAULT_VERSION=~20`, `WEBSITES_PORT=8080`, `NODE_ENV=production`
+
+To use publish-profile deployment from GitHub Actions:
+
+1. Open **Get publish profile** on each web app.
+2. Save each profile as GitHub secrets:
+   - `AZURE_WEBAPP_PUBLISH_PROFILE_STAGING`
+   - `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`
+
+---
+
 ## 6. GitHub Actions secrets
 
 Set these as **repository secrets** (Settings → Secrets and variables → Actions). All secrets should be rotated on a defined schedule.
@@ -157,18 +193,23 @@ Set these as **repository secrets** (Settings → Secrets and variables → Acti
 
 | Secret name                   | Source                        | Rotation  |
 | ----------------------------- | ----------------------------- | --------- |
-| `AZURE_CLIENT_ID`             | App registration client ID    | Annual    |
-| `AZURE_TENANT_ID`             | Entra tenant ID               | Never     |
-| `AZURE_SUBSCRIPTION_ID`       | Target subscription           | On change |
-| `SWA_DEPLOY_TOKEN_STAGING`    | SWA → Manage deployment token | 90 days   |
-| `SWA_DEPLOY_TOKEN_PROD`       | SWA prod deployment token     | 90 days   |
+| `AZURE_SUBSCRIPTION_ID`       | Azure subscription ID         | On change |
+| `AZURE_WEBAPP_PUBLISH_PROFILE_STAGING` | App Service (staging) publish profile | 90 days |
+| `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`    | App Service (prod) publish profile    | 90 days |
 | `APIM_BASE_URL_STAGING`       | Output from staging deploy    | On change |
 | `APIM_BASE_URL_PROD`          | Output from prod deploy       | On change |
 | `APPINSIGHTS_CONNSTR_STAGING` | App Insights → Properties     | 90 days   |
 | `APPINSIGHTS_CONNSTR_PROD`    | App Insights → Properties     | 90 days   |
 
 
-OIDC federated identity means **no Azure password or service principal secret is ever stored in GitHub**.
+Also configure these GitHub repository **variables**:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_WEBAPP_NAME_STAGING`
+- `AZURE_WEBAPP_NAME_PROD`
+- `APP_BASE_URL_STAGING`
+- `APP_BASE_URL_PROD`
 
 ---
 
@@ -193,8 +234,8 @@ Branch protection on `main`:
 
 ```bash
 # 1. Configure secrets (via gh CLI or web UI)
-gh secret set AZURE_CLIENT_ID --body "$APP_ID"
-gh secret set AZURE_TENANT_ID --body "$AZURE_TENANT_ID"
+gh variable set AZURE_CLIENT_ID --body "$APP_ID"
+gh variable set AZURE_TENANT_ID --body "$AZURE_TENANT_ID"
 # … etc
 
 # 2. Push to develop → triggers staging deploy
@@ -203,12 +244,27 @@ git push -u origin develop
 # Watch Actions tab → "Deploy → staging" job
 
 # 3. Validate staging:
-#    Open https://swa-aic-staging.azurestaticapps.net
+#    Open your staging app URL (for example: https://aic-portal-staging.azurewebsites.net)
 #    Sign in with a test AAD user assigned the Initiative_Submitter role
 
 # 4. Promote to production
 gh pr create --base main --head develop --title "Initial production release"
 # Get PR review → merge → "Deploy → production" runs (manual approval gate)
+```
+
+### Controlled promotion workflow (staging -> production)
+
+Use `.github/workflows/azure-release-promote.yml` for explicit promotion in one workflow run:
+
+```bash
+# Staging-only app release (no infra)
+gh workflow run azure-release-promote.yml -f release_mode=staging-only -f deploy_infrastructure=false
+
+# Full promotion: staging deploy + production deploy (production approval still applies)
+gh workflow run azure-release-promote.yml -f release_mode=promote-to-production -f deploy_infrastructure=false
+
+# Full promotion including infrastructure deploy (Bicep) in both stages
+gh workflow run azure-release-promote.yml -f release_mode=promote-to-production -f deploy_infrastructure=true
 ```
 
 ---
@@ -217,18 +273,17 @@ gh pr create --base main --head develop --title "Initial production release"
 
 After each deploy, the workflow runs:
 
-- HTTP 200 check on the SWA root
+- HTTP 200 check on the App Service root
 - Validates `Strict-Transport-Security`, `Content-Security-Policy`, `X-Frame-Options` headers
-- Confirms `/.auth/login/aad` returns a 302 redirect
+- Confirms portal pages load with expected RBAC behavior after sign-in
 
 Manual checks for the production cutover:
 
 ```bash
 URL=https://aic-portal.alshaya.com
 
-# Login redirect works
-curl -sI $URL/admin.html | grep -i location
-# → expect 302 to /.auth/login/aad
+# Login flow works
+curl -sI $URL/portal-router.html | grep -i "200\|302"
 
 # Health endpoint via APIM
 curl -sI $URL/api/health -H "Authorization: Bearer $TOKEN"
@@ -244,17 +299,18 @@ In the portal: **Admin → System Health → Run Health Check** must return 4 gr
 ## 10. Custom domain & TLS
 
 ```bash
-# Add custom domain to the SWA
-az staticwebapp hostname set --name swa-aic-production \
-  --hostname aic-portal.alshaya.com \
-  --resource-group rg-aic-production
+# Add custom hostname to App Service
+az webapp config hostname add \
+  --webapp-name <app-service-name> \
+  --resource-group rg-aic-production \
+  --hostname aic-portal.alshaya.com
 
 # DNS records to configure (apex/CNAME)
-# CNAME aic-portal → <swa-default-hostname>.azurestaticapps.net
+# CNAME aic-portal → <app-service-name>.azurewebsites.net
 # OR ALIAS / ANAME if using apex
 ```
 
-SWA Standard tier provisions free managed TLS automatically once DNS is verified (5–15 mins).
+Bind a managed certificate in App Service once DNS ownership is verified.
 
 ---
 
@@ -313,7 +369,7 @@ AzureDiagnostics
 | Rotate Cosmos master key   | `az cosmosdb keys regenerate -n <acct> -g <rg> --key-kind primary`, then update Key Vault secret |
 | Restart APIM (no downtime) | `az apim update -n <name> -g <rg> --set sku.name=Standard`                                       |
 | Export audit logs          | Admin Console → Audit Log → Export CSV                                                           |
-| Scale up SWA               | Already on Standard — no action                                                                  |
+| Scale up App Service       | `az appservice plan update -g <rg> -n <plan> --sku P2v3`                                        |
 
 
 ---
@@ -333,7 +389,7 @@ az deployment sub create \
   --parameters infra/parameters/production.bicepparam \
   --name aic-rollback-$(date +%s)
 
-# 3. For SWA only (revert the static content):
+# 3. Re-run deployment workflow from previous known-good commit:
 gh workflow run azure-deploy.yml -r <previous-good-sha>
 ```
 
@@ -348,7 +404,7 @@ For Cosmos data corruption: use **Continuous Backup** (Cosmos → Point-in-Time 
 
 | Resource       | Tier                               | Approx monthly cost (USD) |
 | -------------- | ---------------------------------- | ------------------------- |
-| Static Web App | Standard                           | $9                        |
+| App Service Plan | P1v3 (Linux)                     | $70-100                   |
 | API Management | Standard (1 unit)                  | $145                      |
 | Cosmos DB      | 4000 RU/s autoscale, geo-redundant | $80–120                   |
 | Key Vault      | Premium                            | $5                        |
@@ -356,10 +412,10 @@ For Cosmos data corruption: use **Continuous Backup** (Cosmos → Point-in-Time 
 | App Insights   | Workspace-based                    | included in LA            |
 | Storage        | GRS, < 50 GB                       | $5                        |
 | Monitor alerts | 3 metric rules                     | $3                        |
-| **Total**      |                                    | **~$259–299/month**       |
+| **Total**      |                                    | **~$320–390/month**       |
 
 
-For staging (Developer APIM, single-region Cosmos): ~$70/month.
+For staging (B1 App Service + Developer APIM + single-region Cosmos): ~$90-130/month.
 
 ---
 

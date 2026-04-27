@@ -26,8 +26,8 @@
    │  • PKCE OAuth 2.0  • Conditional Access  • MFA     │
    └────────────────────────────────────────────────────┘
    ┌────────────────────────────────────────────────────┐
-   │  Layer 2 — Edge (Azure Static Web App)             │
-   │  • Built-in AAD route protection                   │
+   │  Layer 2 — Edge (Azure App Service + WAF/CDN)      │
+   │  • App Service auth or app-level auth integration  │
    │  • CSP / HSTS / Frame-Options / Permissions-Policy │
    └────────────────────────────────────────────────────┘
    ┌────────────────────────────────────────────────────┐
@@ -80,7 +80,7 @@
 | Initiative_Submitter | 40 | ✓ | — | — | — | — |
 
 Enforcement points:
-1. Azure Static Web App `staticwebapp.config.json` — page-level
+1. App-level RBAC and route guards in protected pages
 2. APIM JWT policy — API-level role claim check
 3. `AIC_SEC.canAccess()` and `requireAccess()` — DOM-level for in-app gating
 4. `data-min-role` attribute hides UI elements client-side (defence-in-depth, not enforcement)
@@ -98,7 +98,7 @@ All Cosmos calls go via APIM. The APIM inbound policy:
 
 The Cosmos master key value never appears in:
 - Browser JS
-- Static Web App config
+- App Service app settings and deployment configuration
 - APIM portal UI (it's a secret named-value with Key Vault back-end)
 - Application logs (we strip auth headers from APIM telemetry sampling)
 
@@ -159,7 +159,7 @@ Audit container has 90-day TTL (PDPL retention policy). For longer-term retentio
 
 | OWASP risk | Mitigation |
 |-----------|-----------|
-| A01 Broken Access Control | Multi-layer RBAC: SWA routes, APIM JWT, AIC_SEC.canAccess |
+| A01 Broken Access Control | Multi-layer RBAC: page guards, APIM JWT, AIC_SEC.canAccess |
 | A02 Cryptographic Failures | TLS 1.2+ everywhere, no client-side crypto, Key Vault for secrets |
 | A03 Injection | Parameterised Cosmos queries via APIM, DOMPurify on all rendering |
 | A04 Insecure Design | Defence-in-depth, threat-modelled |

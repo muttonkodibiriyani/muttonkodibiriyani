@@ -21,8 +21,7 @@ const AIC_CONFIG = {
     ]
   },
   cosmos: {
-    apiBaseUrl: window.__AIC_ENV?.APIM_BASE_URL || 'https://aic-apim.azure-api.net/aic/v1',
-    apimSubscriptionKey: window.__AIC_ENV?.APIM_SUBSCRIPTION_KEY || ''
+    apiBaseUrl: window.__AIC_ENV?.APIM_BASE_URL || 'https://aic-apim.azure-api.net/aic/v1'
   },
   appInsights: {
     connectionString: window.__AIC_ENV?.APPLICATIONINSIGHTS_CONNECTION_STRING || ''

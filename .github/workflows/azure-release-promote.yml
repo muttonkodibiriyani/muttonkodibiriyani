@@ -1,0 +1,191 @@
+name: AIC - Azure Release (Infra + App Service)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: Release mode
+        type: choice
+        options:
+          - staging-only
+          - promote-to-production
+        default: staging-only
+      deploy_infrastructure:
+        description: Deploy infrastructure (Bicep) before app deploy
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-package:
+    name: Build deployable package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate package json
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'));"
+      - name: Archive release package
+        run: |
+          zip -r release.zip . \
+            -x ".git/*" \
+               ".github/*" \
+               "docs/*" \
+               "infra/*" \
+               "*.md" \
+               "start.sh" \
+               "start.bat"
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: release.zip
+
+  deploy-staging:
+    name: Deploy staging (infra + app)
+    needs: [build-package]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+      - name: Azure login for infra deploy
+        if: ${{ inputs.deploy_infrastructure }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy staging infrastructure (Bicep)
+        if: ${{ inputs.deploy_infrastructure }}
+        uses: azure/arm-deploy@v2
+        with:
+          scope: subscription
+          region: uaenorth
+          template: infra/main.bicep
+          parameters: infra/parameters/staging.bicepparam
+          deploymentName: aic-staging-release-${{ github.run_id }}
+      - name: Generate staging env-config.js
+        run: |
+          cat > env-config.js <<EOF
+          window.__AIC_ENV = {
+            AZURE_CLIENT_ID: '${{ vars.AZURE_CLIENT_ID }}',
+            AZURE_TENANT_ID: '${{ vars.AZURE_TENANT_ID }}',
+            APIM_BASE_URL: '${{ secrets.APIM_BASE_URL_STAGING }}',
+            APPLICATIONINSIGHTS_CONNECTION_STRING: '${{ secrets.APPINSIGHTS_CONNSTR_STAGING }}'
+          };
+          EOF
+      - name: Update package with environment config
+        run: |
+          zip -u release.zip env-config.js
+      - name: Deploy staging web app
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_STAGING }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+          package: release.zip
+      - name: Configure staging runtime environment
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_STAGING }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+          app-settings-json: |
+            [
+              { "name": "WEBSITE_NODE_DEFAULT_VERSION", "value": "~20", "slotSetting": false },
+              { "name": "WEBSITES_PORT", "value": "8080", "slotSetting": false },
+              { "name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "false", "slotSetting": false },
+              { "name": "NODE_ENV", "value": "production", "slotSetting": false }
+            ]
+          general-settings-json: |
+            {
+              "alwaysOn": true,
+              "http20Enabled": true,
+              "minTlsVersion": "1.2",
+              "linuxFxVersion": "NODE|20-lts",
+              "appCommandLine": "node server.js"
+            }
+      - name: Staging smoke test
+        run: |
+          URL="${{ vars.APP_BASE_URL_STAGING }}"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "$URL")
+          [ "$STATUS" = "200" ] || (echo "Unexpected status $STATUS"; exit 1)
+          curl -sSI "$URL" | grep -i "strict-transport-security" >/dev/null || (echo "HSTS missing"; exit 1)
+          curl -sSI "$URL" | grep -i "content-security-policy" >/dev/null || (echo "CSP missing"; exit 1)
+
+  deploy-production:
+    name: Promote to production (infra + app)
+    if: ${{ inputs.release_mode == 'promote-to-production' }}
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+      - name: Azure login for infra deploy
+        if: ${{ inputs.deploy_infrastructure }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy production infrastructure (Bicep)
+        if: ${{ inputs.deploy_infrastructure }}
+        uses: azure/arm-deploy@v2
+        with:
+          scope: subscription
+          region: uaenorth
+          template: infra/main.bicep
+          parameters: infra/parameters/production.bicepparam
+          deploymentName: aic-production-release-${{ github.run_id }}
+      - name: Generate production env-config.js
+        run: |
+          cat > env-config.js <<EOF
+          window.__AIC_ENV = {
+            AZURE_CLIENT_ID: '${{ vars.AZURE_CLIENT_ID }}',
+            AZURE_TENANT_ID: '${{ vars.AZURE_TENANT_ID }}',
+            APIM_BASE_URL: '${{ secrets.APIM_BASE_URL_PROD }}',
+            APPLICATIONINSIGHTS_CONNECTION_STRING: '${{ secrets.APPINSIGHTS_CONNSTR_PROD }}'
+          };
+          EOF
+      - name: Update package with environment config
+        run: |
+          zip -u release.zip env-config.js
+      - name: Deploy production web app
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
+          package: release.zip
+      - name: Configure production runtime environment
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
+          app-settings-json: |
+            [
+              { "name": "WEBSITE_NODE_DEFAULT_VERSION", "value": "~20", "slotSetting": false },
+              { "name": "WEBSITES_PORT", "value": "8080", "slotSetting": false },
+              { "name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "false", "slotSetting": false },
+              { "name": "NODE_ENV", "value": "production", "slotSetting": false }
+            ]
+          general-settings-json: |
+            {
+              "alwaysOn": true,
+              "http20Enabled": true,
+              "minTlsVersion": "1.2",
+              "linuxFxVersion": "NODE|20-lts",
+              "appCommandLine": "node server.js"
+            }
+      - name: Production smoke test
+        run: |
+          URL="${{ vars.APP_BASE_URL_PROD }}"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "$URL")
+          [ "$STATUS" = "200" ] || (echo "Unexpected status $STATUS"; exit 1)
+          curl -sSI "$URL" | grep -i "strict-transport-security" >/dev/null || (echo "HSTS missing"; exit 1)
+          curl -sSI "$URL" | grep -i "content-security-policy" >/dev/null || (echo "CSP missing"; exit 1)
