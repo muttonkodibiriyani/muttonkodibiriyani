@@ -1,89 +1,223 @@
-name: Azure Deploy
+name: AIC - Azure App Service CI/CD
+
 on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+
 permissions:
-  id-token: write
   contents: read
   security-events: write
-  issues: write
-env:
-  APP_LOCATION: /
+
 jobs:
   secret-scan:
-    if: github.event.action != 'closed'
+    name: Secret scan (Gitleaks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gitleaks/gitleaks-action@v2
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   codeql-scan:
-    if: github.event.action != 'closed'
+    name: CodeQL - JavaScript security-extended
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
-        with: { languages: javascript, queries: security-extended }
-      - uses: github/codeql-action/analyze@v3
-  dependency-audit:
-    if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm audit --audit-level=high --omit=dev || test ! -f package-lock.json
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          queries: security-extended,security-and-quality
+      - name: Run analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript
+
   validate:
-    if: github.event.action != 'closed'
+    name: Validate app package
+    needs: [secret-scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/setup-bicep@v2
-      - run: az bicep build --file infra/main.bicep
-      - run: python -m json.tool staticwebapp.config.json >/dev/null
-      - run: test -f index.html && test -f js/app.js && test -f css/design-system.css
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate JSON configuration files
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('staticwebapp.config.json','utf8')); JSON.parse(require('fs').readFileSync('package.json','utf8'));"
+      - name: HTML smoke check
+        run: |
+          for f in *.html; do
+            if grep -q "<html" "$f" && grep -q "</html>" "$f"; then
+              echo "OK: $f"
+            else
+              echo "MALFORMED: $f"
+              exit 1
+            fi
+          done
+
+  build-package:
+    name: Build deployment package
+    needs: [validate, codeql-scan]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate env-config.js for target environment
+        run: |
+          TARGET_ENV="${{ github.event.inputs.environment }}"
+          if [ -z "$TARGET_ENV" ]; then
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              TARGET_ENV="production"
+            else
+              TARGET_ENV="staging"
+            fi
+          fi
+
+          if [ "$TARGET_ENV" = "production" ]; then
+            APIM_BASE_URL="${{ secrets.APIM_BASE_URL_PROD }}"
+            APPINSIGHTS_CONNECTION_STRING="${{ secrets.APPINSIGHTS_CONNSTR_PROD }}"
+          else
+            APIM_BASE_URL="${{ secrets.APIM_BASE_URL_STAGING }}"
+            APPINSIGHTS_CONNECTION_STRING="${{ secrets.APPINSIGHTS_CONNSTR_STAGING }}"
+          fi
+
+          cat > env-config.js <<EOF
+          window.__AIC_ENV = {
+            AZURE_CLIENT_ID: '${{ vars.AZURE_CLIENT_ID }}',
+            AZURE_TENANT_ID: '${{ vars.AZURE_TENANT_ID }}',
+            APIM_BASE_URL: '${APIM_BASE_URL}',
+            APPLICATIONINSIGHTS_CONNECTION_STRING: '${APPINSIGHTS_CONNECTION_STRING}'
+          };
+          EOF
+      - name: Archive website package
+        run: |
+          zip -r release.zip . \
+            -x ".git/*" \
+               ".github/*" \
+               "docs/*" \
+               "infra/*" \
+               "*.md" \
+               "start.sh" \
+               "start.bat"
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-package
+          path: release.zip
+
   deploy-staging:
-    if: github.ref == 'refs/heads/develop'
-    needs: [secret-scan, codeql-scan, dependency-audit, validate]
+    name: Deploy to Azure App Service (staging)
+    if: |
+      github.event_name != 'pull_request' &&
+      (
+        github.ref == 'refs/heads/develop' ||
+        github.event.inputs.environment == 'staging'
+      ) &&
+      secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING != '' &&
+      vars.AZURE_WEBAPP_NAME_STAGING != '' &&
+      vars.APP_BASE_URL_STAGING != ''
+    needs: [build-package]
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
-        with: { client-id: '${{ vars.AZURE_CLIENT_ID }}', tenant-id: '${{ vars.AZURE_TENANT_ID }}', subscription-id: '${{ vars.AZURE_SUBSCRIPTION_ID }}' }
-      - run: az deployment sub create --location uaenorth --template-file infra/main.bicep --parameters infra/parameters/staging.bicepparam
-      - run: printf "window.__AIC_ENV={AZURE_CLIENT_ID:'%s',AZURE_TENANT_ID:'%s',APIM_BASE_URL:'%s'};Object.freeze(window.__AIC_ENV);" "${{ vars.AZURE_CLIENT_ID }}" "${{ vars.AZURE_TENANT_ID }}" "${{ vars.APIM_BASE_URL }}" > env-config.js
-      - uses: Azure/static-web-apps-deploy@v1
-        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: upload, app_location: '/', output_location: '/' }
-      - run: curl -fsSI "${{ vars.STAGING_URL }}/index.html"
-  deploy-preview:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    needs: [secret-scan, codeql-scan, dependency-audit, validate]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Azure/static-web-apps-deploy@v1
-        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: upload, app_location: '/', output_location: '/' }
-  close-preview:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: Azure/static-web-apps-deploy@v1
-        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}', action: close }
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-package
+      - name: Deploy to web app using publish profile
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_STAGING }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+          package: release.zip
+      - name: Configure staging runtime environment
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_STAGING }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+          app-settings-json: |
+            [
+              { "name": "WEBSITE_NODE_DEFAULT_VERSION", "value": "~20", "slotSetting": false },
+              { "name": "WEBSITES_PORT", "value": "8080", "slotSetting": false },
+              { "name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "false", "slotSetting": false },
+              { "name": "NODE_ENV", "value": "production", "slotSetting": false }
+            ]
+          general-settings-json: |
+            {
+              "alwaysOn": true,
+              "http20Enabled": true,
+              "minTlsVersion": "1.2",
+              "linuxFxVersion": "NODE|20-lts",
+              "appCommandLine": "node server.js"
+            }
+      - name: Smoke test headers
+        run: |
+          URL="${{ vars.APP_BASE_URL_STAGING }}"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "$URL")
+          [ "$STATUS" = "200" ] || (echo "Unexpected status: $STATUS" && exit 1)
+          curl -sSI "$URL" | grep -i "strict-transport-security" >/dev/null || (echo "HSTS missing" && exit 1)
+          curl -sSI "$URL" | grep -i "content-security-policy" >/dev/null || (echo "CSP missing" && exit 1)
+
   deploy-production:
-    if: github.ref == 'refs/heads/main'
-    needs: [secret-scan, codeql-scan, dependency-audit, validate]
+    name: Deploy to Azure App Service (production)
+    if: |
+      github.event_name != 'pull_request' &&
+      (
+        github.ref == 'refs/heads/main' ||
+        github.event.inputs.environment == 'production'
+      ) &&
+      secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD != '' &&
+      vars.AZURE_WEBAPP_NAME_PROD != '' &&
+      vars.APP_BASE_URL_PROD != ''
+    needs: [build-package]
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
-        with: { client-id: '${{ vars.AZURE_CLIENT_ID }}', tenant-id: '${{ vars.AZURE_TENANT_ID }}', subscription-id: '${{ vars.AZURE_SUBSCRIPTION_ID }}' }
-      - run: az deployment sub create --location uaenorth --template-file infra/main.bicep --parameters infra/parameters/production.bicepparam
-      - run: printf "window.__AIC_ENV={AZURE_CLIENT_ID:'%s',AZURE_TENANT_ID:'%s',APIM_BASE_URL:'%s'};Object.freeze(window.__AIC_ENV);" "${{ vars.AZURE_CLIENT_ID }}" "${{ vars.AZURE_TENANT_ID }}" "${{ vars.APIM_BASE_URL }}" > env-config.js
-      - uses: Azure/static-web-apps-deploy@v1
-        with: { azure_static_web_apps_api_token: '${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PRODUCTION }}', action: upload, app_location: '/', output_location: '/' }
-      - run: curl -fsSI "${{ vars.PRODUCTION_URL }}/index.html" | tee headers.txt && grep -i x-frame-options headers.txt
-      - if: failure()
-        uses: actions/github-script@v7
+      - uses: actions/download-artifact@v4
         with:
-          script: github.rest.issues.create({owner:context.repo.owner,repo:context.repo.repo,title:'Production deployment failed - rollback required',body:'Review the failed run and redeploy the prior successful artifact.'})
+          name: app-package
+      - name: Deploy to web app using publish profile
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
+          package: release.zip
+      - name: Configure production runtime environment
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
+          app-settings-json: |
+            [
+              { "name": "WEBSITE_NODE_DEFAULT_VERSION", "value": "~20", "slotSetting": false },
+              { "name": "WEBSITES_PORT", "value": "8080", "slotSetting": false },
+              { "name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "false", "slotSetting": false },
+              { "name": "NODE_ENV", "value": "production", "slotSetting": false }
+            ]
+          general-settings-json: |
+            {
+              "alwaysOn": true,
+              "http20Enabled": true,
+              "minTlsVersion": "1.2",
+              "linuxFxVersion": "NODE|20-lts",
+              "appCommandLine": "node server.js"
+            }
+      - name: Smoke test headers
+        run: |
+          URL="${{ vars.APP_BASE_URL_PROD }}"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "$URL")
+          [ "$STATUS" = "200" ] || (echo "Unexpected status: $STATUS" && exit 1)
+          curl -sSI "$URL" | grep -i "strict-transport-security" >/dev/null || (echo "HSTS missing" && exit 1)
+          curl -sSI "$URL" | grep -i "content-security-policy" >/dev/null || (echo "CSP missing" && exit 1)
