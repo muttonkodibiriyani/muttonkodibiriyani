@@ -545,6 +545,9 @@ const AIC_DB = (function () {
     const draft = api.getDraft(draftId);
     if (!draft) return null;
     const user = api.getUserById(submittedById || draft.submittedById);
+    const draftMarkets = Array.isArray(draft.markets)
+      ? draft.markets
+      : (draft.country ? String(draft.country).split(',').map(s => s.trim()).filter(Boolean) : []);
     const created = api.createInitiative({
       title: draft.title,
       domain: draft.domain,
@@ -553,7 +556,8 @@ const AIC_DB = (function () {
       sponsor: draft.sponsor,
       submittedBy: user ? user.name : (draft.submittedBy || 'Initiator'),
       submittedById: submittedById || draft.submittedById,
-      country: draft.country,
+      markets: draftMarkets,
+      country: draftMarkets.join(', '),
       brands: draft.brands ? String(draft.brands).split(',').map(s => s.trim()).filter(Boolean) : (draft.brands || []),
       priority: draft.priority || 'Strategic',
       description: draft.description,

@@ -127,7 +127,7 @@ initPage({
               row('Submitter', init.submittedBy) +
               row('Submitted', formatDate(init.submittedDate)) +
               row('Brands', (init.brands || []).join(', ')) +
-              row('Markets', init.country) +
+              row('Markets', (init.markets && init.markets.length ? init.markets.join(', ') : init.country)) +
             '</div>' +
             (init.financialCase ? '<div class="card"><div class="card-header"><h3 class="card-title">Financial Case</h3></div><p class="text-sm">' + SH(init.financialCase) + '</p></div>' : '') +
           '</div>' +

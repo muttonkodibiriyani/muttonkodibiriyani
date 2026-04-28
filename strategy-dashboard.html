@@ -89,9 +89,9 @@
           <div class="card" style="background:var(--color-surface2);border:1px dashed var(--color-border);margin-bottom:16px;">
             <div class="flex justify-between items-center mb-sm">
               <strong>Shark Council Simulator</strong>
-              <button id="btn-run-sharks" class="btn btn-secondary btn-sm" disabled><i class="fas fa-wand-magic-sparkles"></i> Run Shark Council Score</button>
+              <button id="btn-run-sharks" class="btn btn-secondary btn-sm" disabled><i class="fas fa-rotate"></i> Recalculate</button>
             </div>
-            <div id="shark-summary" class="text-xs text-muted">Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.</div>
+            <div id="shark-summary" class="text-xs text-muted">Shark council score is auto-calculated from your gatekeeper sliders after initiative submission.</div>
             <div id="shark-confidence" class="mt-sm"></div>
             <div id="shark-preview" class="mt-sm"></div>
           </div>
@@ -236,7 +236,7 @@ initPage({
     function buildPickList() {
       const sel = document.getElementById('score-pick');
       sel.innerHTML = '<option value="">— select an initiative —</option>' +
-        cache.filter(i => i.status !== 'Closed' && i.status !== 'Draft').map(i =>
+        cache.filter(i => i.status === 'Submitted' || i.status === 'Under Review' || i.stage === 'Gatekeeper Review').map(i =>
           '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>'
         ).join('');
     }
@@ -272,9 +272,28 @@ initPage({
       lbl.textContent = scoreLabel(score);
       lbl.className = 'badge ' + scoreClass(score);
       AIC_CHARTS.radar('chart-radar', dimDefs.map(d => d.name), dimDefs.map(d => dims[d.key].score));
+      if (document.getElementById('score-pick').value) refreshSharkModel();
     }
 
     let sharkModel = null;
+    function renderSharkPreview() {
+      if (!sharkModel) return;
+      document.getElementById('shark-summary').innerHTML = '<span class="badge ' + scoreClass(sharkModel.sharkCouncilScore) + '">Shark Council Score: ' + sharkModel.sharkCouncilScore + '</span> <span class="text-muted">(avg ' + sharkModel.average + ', red team ' + sharkModel.redTeam + ')</span>';
+      document.getElementById('shark-confidence').innerHTML =
+        '<span class="badge ' + scoreClass(sharkModel.confidenceScore) + '">Confidence: ' + AIC_SEC.escapeHtml(sharkModel.confidence) + ' (' + sharkModel.confidenceScore + ')</span> ' +
+        '<span class="text-xs text-muted">Band: ' + AIC_SEC.escapeHtml(scoreBand(sharkModel.sharkCouncilScore)) + '</span>';
+      document.getElementById('shark-preview').innerHTML = sharkModel.sharks.map(s =>
+        '<div class="text-xs" style="padding:4px 0;"><strong>' + AIC_SEC.escapeHtml(s.shark) + ':</strong> ' + s.score + ' — ' + AIC_SEC.escapeHtml(s.reason) + '</div>'
+      ).join('');
+    }
+    function refreshSharkModel() {
+      const id = document.getElementById('score-pick').value;
+      if (!id) return;
+      const dims = buildCurrentDims();
+      const gk = AIC_DB.computeGatekeeperScore(dims);
+      sharkModel = buildSharkCouncilModel(id, dims, gk);
+      renderSharkPreview();
+    }
 
     document.getElementById('score-pick').addEventListener('change', (e) => {
       const id = e.target.value;
@@ -283,9 +302,10 @@ initPage({
       sharkModel = null;
       document.getElementById('shark-preview').innerHTML = '';
       document.getElementById('shark-confidence').innerHTML = '';
-      document.getElementById('shark-summary').textContent = 'Run after setting Gatekeeper sliders to generate unbiased shark council score and reasons.';
+      document.getElementById('shark-summary').textContent = 'Shark council score is auto-calculated from your gatekeeper sliders after initiative submission.';
       document.getElementById('btn-run-sharks').disabled = !id;
       document.getElementById('btn-submit-score').disabled = !id;
+      if (id) refreshSharkModel();
     });
     document.getElementById('recommendation').addEventListener('change', (e) => {
       document.getElementById('conditions-wrap').style.display = e.target.value === 'CONDITIONAL' ? 'block' : 'none';
@@ -397,26 +417,16 @@ initPage({
     }
 
     document.getElementById('btn-run-sharks').addEventListener('click', () => {
-      const id = document.getElementById('score-pick').value;
-      if (!id) return;
-      const dims = buildCurrentDims();
-      const gk = AIC_DB.computeGatekeeperScore(dims);
-      sharkModel = buildSharkCouncilModel(id, dims, gk);
-      document.getElementById('shark-summary').innerHTML = '<span class="badge ' + scoreClass(sharkModel.sharkCouncilScore) + '">Shark Council Score: ' + sharkModel.sharkCouncilScore + '</span> <span class="text-muted">(avg ' + sharkModel.average + ', red team ' + sharkModel.redTeam + ')</span>';
-      document.getElementById('shark-confidence').innerHTML =
-        '<span class="badge ' + scoreClass(sharkModel.confidenceScore) + '">Confidence: ' + AIC_SEC.escapeHtml(sharkModel.confidence) + ' (' + sharkModel.confidenceScore + ')</span> ' +
-        '<span class="text-xs text-muted">Band: ' + AIC_SEC.escapeHtml(scoreBand(sharkModel.sharkCouncilScore)) + '</span>';
-      document.getElementById('shark-preview').innerHTML = sharkModel.sharks.map(s =>
-        '<div class="text-xs" style="padding:4px 0;"><strong>' + AIC_SEC.escapeHtml(s.shark) + ':</strong> ' + s.score + ' — ' + AIC_SEC.escapeHtml(s.reason) + '</div>'
-      ).join('');
+      refreshSharkModel();
+      if (!sharkModel) return;
       AIC_SEC.audit('SHARK_COUNCIL_SCORE_GENERATED', {
-        id,
-        gatekeeperScore: gk,
+        id: document.getElementById('score-pick').value,
+        gatekeeperScore: AIC_DB.computeGatekeeperScore(buildCurrentDims()),
         sharkCouncilScore: sharkModel.sharkCouncilScore,
         confidence: sharkModel.confidence,
         redTeam: sharkModel.redTeam
       }, 'INFO');
-      showToast('Shark council scoring generated and attached.', 'success');
+      showToast('Shark council scoring recalculated.', 'success');
     });
     document.getElementById('btn-submit-score').addEventListener('click', async () => {
       const rl = AIC_SEC.checkRateLimit('score-submit', 10, 60000);
@@ -436,10 +446,7 @@ initPage({
       const autoReject = score < 50;
       const status = autoReject ? 'Rejected by Gatekeeper' : (rec === 'REJECT' ? 'Rejected by Gatekeeper' : 'Awaiting CXO Approval');
       const stage = autoReject ? 'Rejected at Gatekeeper' : 'Awaiting Council';
-      if (!autoReject && !sharkModel) {
-        showToast('Run Shark Council Score before submitting to CXO.', 'warning');
-        return;
-      }
+      if (!autoReject && !sharkModel) refreshSharkModel();
 
       const patch = {
         gatekeeperScore: score,

@@ -290,7 +290,7 @@ initPage({
     }
     function openModal() {
       const sel = document.getElementById('council-pick');
-      const eligible = sortByPriorityAndScore(cache.filter(i => i.status === 'Awaiting CXO Approval' || i.status === 'Validated' || i.status === 'Approved')); 
+      const eligible = sortByPriorityAndScore(cache.filter(i => i.status === 'Awaiting CXO Approval' || i.status === 'Validated' || i.stage === 'Awaiting Council')); 
       sel.innerHTML = eligible.map(i => '<option value="' + AIC_SEC.encodeAttr(i.id) + '">' + AIC_SEC.escapeHtml(i.id + ' — ' + i.title) + '</option>').join('');
       if (eligible.length) {
         renderCxoPreRead(eligible[0].id);

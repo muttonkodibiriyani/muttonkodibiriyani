@@ -87,6 +87,10 @@ initPage({
       { id:8, label:'Review' }
     ];
 
+    const MENA_MARKETS = [
+      'UAE', 'KSA', 'Qatar', 'Kuwait', 'Bahrain', 'Egypt', 'Oman', 'Jordan', 'Morocco', 'Tunisia', 'Iraq', 'Lebanon'
+    ];
+
     let state = {
       id: null,
       submittedById: user.id,
@@ -94,7 +98,7 @@ initPage({
       step: 1,
       title: '', domain: '', priority: 'Strategic',
       sponsor: '', sponsorTitle: '',
-      brands: [], country: '', startDate: '',
+      brands: [], markets: [], country: '', startDate: '',
       problemStatement: '', customerEvidence: '',
       costOfInaction: '', sizeOfPrize: '',
       description: '', buyVsBuild: 'Build', buyVsBuildJust: '',
@@ -121,6 +125,15 @@ initPage({
       acknowledged: false
     };
 
+    function normalizeMarkets() {
+      if (Array.isArray(state.markets) && state.markets.length) return;
+      if (state.country) {
+        state.markets = String(state.country).split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        state.markets = [];
+      }
+    }
+
     // resume detection
     const draftId = getParam('draft');
     const existing = draftId ? AIC_DB.getDraft(draftId) : (AIC_DB.getDrafts(user.id).filter(d => !d.submitted).pop());
@@ -128,11 +141,12 @@ initPage({
       const banner = document.getElementById('resume-banner');
       banner.style.display = 'block';
       document.getElementById('resume-meta').textContent = (existing.title || 'Untitled') + ' — last saved ' + timeAgo(existing.savedAt);
-      document.getElementById('btn-resume').addEventListener('click', () => { state = Object.assign(state, existing); render(); });
+      document.getElementById('btn-resume').addEventListener('click', () => { state = Object.assign(state, existing); normalizeMarkets(); render(); });
       document.getElementById('btn-discard').addEventListener('click', () => { banner.style.display = 'none'; });
     } else if (draftId && existing) {
       state = Object.assign(state, existing);
     }
+    normalizeMarkets();
 
     function renderProgress() {
       document.getElementById('wiz-progress').innerHTML = STEPS.map(s => {
@@ -158,6 +172,17 @@ initPage({
         html += '<textarea id="' + id + '" name="' + name + '" placeholder="' + AIC_SEC.encodeAttr(opts.placeholder || '') + '">' + AIC_SEC.escapeHtml(v) + '</textarea>';
       } else if (type === 'select') {
         html += '<select id="' + id + '" name="' + name + '">' + opts.options.map(o => '<option value="' + AIC_SEC.encodeAttr(o) + '" ' + (v === o ? 'selected' : '') + '>' + AIC_SEC.escapeHtml(o) + '</option>').join('') + '</select>';
+      } else if (type === 'multiselect') {
+        const selected = Array.isArray(v) ? v : [];
+        html += '<details id="' + id + '" class="multi-select" data-multi-name="' + name + '">' +
+          '<summary>' + AIC_SEC.escapeHtml(selected.length ? selected.join(', ') : (opts.placeholder || 'Select options')) + '</summary>' +
+          '<div class="multi-select-menu">' +
+          (opts.options || []).map(o =>
+            '<label class="multi-select-option">' +
+            '<input type="checkbox" data-multi-option="' + name + '" value="' + AIC_SEC.encodeAttr(o) + '" ' + (selected.indexOf(o) >= 0 ? 'checked' : '') + ' /> ' + AIC_SEC.escapeHtml(o) +
+            '</label>'
+          ).join('') +
+          '</div></details>';
       } else {
         html += '<input id="' + id + '" name="' + name + '" type="' + type + '" value="' + AIC_SEC.encodeAttr(v) + '" placeholder="' + AIC_SEC.encodeAttr(opts.placeholder || '') + '" ' + (opts.min!=null?'min="'+opts.min+'"':'') + ' ' + (opts.max!=null?'max="'+opts.max+'"':'') + ' />';
       }
@@ -175,6 +200,20 @@ initPage({
           if (name === 'budgetRequested') autoStageBudgets();
           debouncedAutosave();
         });
+      });
+
+      scope.querySelectorAll('[data-multi-name]').forEach(wrapper => {
+        const name = wrapper.getAttribute('data-multi-name');
+        const summary = wrapper.querySelector('summary');
+        const boxes = wrapper.querySelectorAll('input[data-multi-option="' + name + '"]');
+        function sync() {
+          const values = [];
+          boxes.forEach(b => { if (b.checked) values.push(b.value); });
+          state[name] = values;
+          summary.textContent = values.length ? values.join(', ') : 'Select one or more markets';
+          debouncedAutosave();
+        }
+        boxes.forEach(b => b.addEventListener('change', sync));
       });
     }
 
@@ -204,7 +243,7 @@ initPage({
         html += '</div>';
         html += '<div class="form-row">';
         html += field('Sponsor (Name & Title)', 'sponsor', 'text', { placeholder:'e.g. Faisal Al-Tamimi (CTO)' });
-        html += field('Target Markets / Countries', 'country', 'text', { placeholder:'UAE, KSA, Kuwait' });
+        html += field('Target Markets / Countries', 'markets', 'multiselect', { required:true, placeholder:'Select one or more markets', options:MENA_MARKETS });
         html += '</div>';
         html += '<div class="form-row">';
         html += field('Target Brands (comma-separated)', 'brands', 'text', { placeholder:'Starbucks, H&M, Mothercare' });
@@ -346,7 +385,7 @@ initPage({
         '<div class="card" style="background:var(--color-surface2);">' +
           '<h4>Basics</h4>' +
           sec('Title', state.title) + sec('Domain', state.domain) + sec('Priority', state.priority) +
-          sec('Sponsor', state.sponsor) + sec('Markets', state.country) +
+          sec('Sponsor', state.sponsor) + sec('Markets', (state.markets || []).join(', ')) +
         '</div>' +
         '<div class="card" style="background:var(--color-surface2);">' +
           '<h4>Financial</h4>' +
@@ -368,7 +407,9 @@ initPage({
     function validateStep() {
       switch (state.step) {
         case 1:
-          if (!state.title.trim() || !state.domain) { showToast('Title and domain are required', 'error'); return false; } break;
+          if (!state.title.trim() || !state.domain) { showToast('Title and domain are required', 'error'); return false; }
+          if (!Array.isArray(state.markets) || !state.markets.length) { showToast('Select at least one target market', 'error'); return false; }
+          break;
         case 2:
           if (!state.problemStatement || state.problemStatement.length < 100) { showToast('Problem statement min 100 characters', 'error'); return false; } break;
         case 3:
@@ -404,6 +445,8 @@ initPage({
       if (!rl.allowed) { showToast('Submitting too quickly. Please wait.', 'warning'); return; }
 
       const dims = {};
+      const selectedMarkets = (state.markets || []).filter(Boolean);
+      const marketsLabel = selectedMarkets.join(', ');
       const initiative = {
         title: state.title,
         domain: state.domain,
@@ -412,7 +455,8 @@ initPage({
         sponsor: state.sponsor,
         submittedBy: user.name,
         submittedById: user.id,
-        country: state.country,
+        markets: selectedMarkets,
+        country: marketsLabel,
         brands: state.brands ? String(state.brands).split(',').map(s => s.trim()).filter(Boolean) : [],
         priority: state.priority,
         description: state.description,
