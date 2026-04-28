@@ -314,11 +314,24 @@ initPage({
         preRead.textContent = 'Select an initiative to load gatekeeper and shark council verdict details.';
         return;
       }
-      const sharkScore = i.sharkCouncilScore != null ? i.sharkCouncilScore : '—';
-      const sharkConfidence = i.sharkCouncilConfidence || 'Not captured';
+      const allSharkVerdicts = i.sharkVerdicts || [];
+      const nonRedSharks = allSharkVerdicts.filter(v => v.shark !== 'Red Team');
+      const redTeam = allSharkVerdicts.find(v => v.shark === 'Red Team');
+      const derivedAvg = nonRedSharks.length ? Math.round(nonRedSharks.reduce((a, v) => a + (Number(v.score) || 0), 0) / nonRedSharks.length) : null;
+      const derivedNet = derivedAvg != null ? (derivedAvg + (redTeam ? (Number(redTeam.score) || 0) : 0)) : null;
+      const scoreBandLabel = (function (score) {
+        if (score == null || isNaN(score)) return 'Not available';
+        if (score >= 85) return 'Strong Invest';
+        if (score >= 75) return 'Invest';
+        if (score >= 60) return 'Conditional';
+        return 'No Invest';
+      })(i.sharkCouncilScore != null ? i.sharkCouncilScore : derivedNet);
+      const sharkScore = i.sharkCouncilScore != null ? i.sharkCouncilScore : (derivedNet != null ? derivedNet : '—');
+      const sharkConfidence = i.sharkCouncilConfidence || (nonRedSharks[0] && nonRedSharks[0].confidence) || 'Not captured';
+      const sharkRecommendation = i.sharkCouncilRecommendation || scoreBandLabel;
       const gkScore = i.gatekeeperScore != null ? i.gatekeeperScore : '—';
       const gkReason = i.strategyReviewerReason || i.gatekeeperNote || 'No gatekeeper rationale captured.';
-      const sharkVerdicts = (i.sharkVerdicts || []).filter(v => v.shark !== 'Red Team');
+      const sharkVerdicts = nonRedSharks;
       const attachmentSummary = (i.attachments || []).length ? ((i.attachments || []).map(a => a.name).join(', ')) : 'No uploaded supporting files.';
       const priorVotes = i.councilVotes || [];
       const sharkList = sharkVerdicts.length
@@ -331,7 +344,8 @@ initPage({
       preRead.innerHTML =
         '<div class="mb-sm"><span class="badge ' + scoreClass(Number(gkScore) || 0) + '">Gatekeeper: ' + AIC_SEC.escapeHtml(String(gkScore)) + '</span> ' +
         '<span class="badge ' + (i.sharkCouncilScore != null ? scoreClass(i.sharkCouncilScore) : 'badge-neutral') + '">Shark Council: ' + AIC_SEC.escapeHtml(String(sharkScore)) + '</span> ' +
-        '<span class="badge badge-info">Confidence: ' + AIC_SEC.escapeHtml(sharkConfidence) + '</span></div>' +
+        '<span class="badge badge-info">Confidence: ' + AIC_SEC.escapeHtml(sharkConfidence) + '</span> ' +
+        '<span class="badge badge-info">Recommendation: ' + AIC_SEC.escapeHtml(sharkRecommendation) + '</span></div>' +
         '<div class="mb-sm"><strong>Strategy Reviewer Rationale</strong><div class="text-xs">' + AIC_SEC.escapeHtml(gkReason) + '</div></div>' +
         '<div class="mb-sm"><strong>Uploaded Supporting Files</strong><div class="text-xs">' + AIC_SEC.escapeHtml(attachmentSummary) + '</div></div>' +
         (priorVotes.length ? '<div class="mb-sm"><strong>Existing Council Votes</strong><div class="text-xs">' + AIC_SEC.escapeHtml(priorVotes.map(v => (v.voter + ': ' + v.score)).join(' | ')) + '</div></div>' : '') +
