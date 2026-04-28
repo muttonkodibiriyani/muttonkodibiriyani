@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e5e7eb;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #1d4ed8;
+  --primary-600: #2563eb;
+  --primary-50: #eff6ff;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --sidebar: #0b1220;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #ffffff;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -10,8 +29,8 @@ html {
 body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  background: #f6f8fb;
-  color: #0f172a;
+  background: var(--bg);
+  color: var(--text);
 }
 
 * {
@@ -21,4 +40,35 @@ body {
 input,
 button {
   font: inherit;
+}
+
+.card {
+  @apply rounded-2xl border bg-white;
+  border-color: var(--border);
+}
+
+.page-wrap {
+  @apply p-6 md:p-8;
+}
+
+.page-header {
+  @apply mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between;
+}
+
+.page-title {
+  @apply text-2xl font-semibold tracking-tight;
+}
+
+.page-subtitle {
+  @apply text-sm;
+  color: var(--text-muted);
+}
+
+.kpi-value {
+  @apply text-2xl font-semibold tracking-tight;
+}
+
+.kpi-label {
+  @apply text-sm;
+  color: var(--text-muted);
 }

@@ -12,6 +12,18 @@ export default function HomePage() {
           <Link href="/sign-in" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white">
             Open Sign-In
           </Link>
+          <Link href="/initiator/dashboard" className="rounded-xl border border-aic-border px-4 py-2 text-sm text-aic-text">
+            Initiator Dashboard
+          </Link>
+          <Link href="/strategy/dashboard" className="rounded-xl border border-aic-border px-4 py-2 text-sm text-aic-text">
+            Strategy Dashboard
+          </Link>
+          <Link href="/committee/dashboard" className="rounded-xl border border-aic-border px-4 py-2 text-sm text-aic-text">
+            Committee Dashboard
+          </Link>
+          <Link href="/admin" className="rounded-xl border border-aic-border px-4 py-2 text-sm text-aic-text">
+            Admin Center
+          </Link>
           <Link
             href="/workspace/investment_committee"
             className="rounded-xl border border-aic-border px-4 py-2 text-sm text-aic-text"

@@ -4,6 +4,12 @@ export type RoleKey =
   | "investment_committee"
   | "platform_admin";
 
+export type UserRole =
+  | "Initiative_Submitter"
+  | "Strategy_Reviewer"
+  | "Investment_Committee"
+  | "Platform_Admin";
+
 export type InitiativeStatus =
   | "Draft"
   | "Submitted"
