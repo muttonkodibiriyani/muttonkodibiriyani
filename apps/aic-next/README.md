@@ -18,6 +18,19 @@ This folder is the phase-2 migration scaffold for the AIC portal redesign.
 3. Start dev server:
    - `npm run dev`
 
+## Dynamic architecture included
+
+- Role-based dynamic routes: `src/app/workspace/[role]/page.tsx`
+- Typed domain/config modules:
+  - `src/lib/types.ts`
+  - `src/lib/workspace-config.ts`
+  - `src/lib/dashboard.ts`
+- API routes (for future DB/CMS integration):
+  - `src/app/api/initiatives/route.ts`
+  - `src/app/api/dashboard/[role]/route.ts`
+
+You can now change workspace behavior and content by editing structured config/data files, not static HTML.
+
 ## Migration intent
 
 - Keep existing static portal live during migration.
