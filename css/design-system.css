@@ -836,6 +836,12 @@ input[type=checkbox], input[type=radio] {
   align-items: center;
   gap: 14px;
 }
+.hero-logo-lockup {
+  width: 430px;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15,23,42,0.25);
+}
 .login-brand .logo-mark {
   width: 42px; height: 42px;
   border-radius: 10px;
@@ -980,6 +986,13 @@ input[type=checkbox], input[type=radio] {
   padding: 24px 22px;
 }
 .signin-head { margin-bottom: 24px; }
+.panel-logo-lockup {
+  width: 300px;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  margin-bottom: 14px;
+}
 .login-panel h2 { font-size: 22px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
 .login-panel .login-sub { color: var(--color-muted); font-size: 13px; margin: 0; line-height: 1.55; }
 .btn-aad { background: #2f2f2f; }
@@ -1157,12 +1170,14 @@ input[type=checkbox], input[type=radio] {
   .login-shell { grid-template-columns: 1fr; }
   .login-hero { padding: 32px 24px; min-height: auto; gap: 24px; }
   .login-brand h2 { font-size: 16px; }
+  .hero-logo-lockup { width: 280px; }
   .login-hero h1 { font-size: 30px; }
   .login-headline .tagline { font-size: 14px; }
   .value-list .vl-title { font-size: 13px; }
   .value-list .vl-desc { font-size: 12px; }
   .login-foot { gap: 6px; flex-direction: column; }
   .login-panel { padding: 28px 24px; }
+  .panel-logo-lockup { width: 230px; }
   .form-row, .form-row-3 { grid-template-columns: 1fr; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .kanban { grid-template-columns: 1fr; }
