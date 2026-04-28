@@ -44,6 +44,10 @@
   </header>
   <main class="page-body">
     <div class="stat-grid" id="stat-grid"></div>
+    <div class="card mb-md">
+      <div class="card-header"><h3 class="card-title">Workflow Notifications</h3></div>
+      <div id="strategy-notifications" class="text-sm text-muted">No new workflow notifications.</div>
+    </div>
     <div class="card mb-md"><strong>Gatekeeper:</strong> Strategy Reviewer is the gatekeeper. Council shark scoring happens only after initiative status becomes <em>Validated / Awaiting Council</em>.</div>
 
     <div class="tabs" id="tabs">
@@ -184,6 +188,26 @@ initPage({
         statCard('Awaiting Council', aw.length, 'validated, queued', '#3b82f6') +
         statCard('Scored This Month', scoredMonth, 'completed reviews', '#10b981') +
         statCard('Avg GK Score', avg, 'across portfolio', '#8b5cf6');
+    }
+    function renderNotifications() {
+      const wrap = document.getElementById('strategy-notifications');
+      const events = [];
+      cache.forEach(i => {
+        (i.lifecycleEvents || []).forEach(e => {
+          if ((e.targetRoles || []).indexOf('Strategy_Reviewer') >= 0) {
+            events.push({ initiativeId: i.id, title: i.title, event: e });
+          }
+        });
+      });
+      events.sort((a, b) => String(b.event.timestamp || '').localeCompare(String(a.event.timestamp || '')));
+      if (!events.length) {
+        wrap.textContent = 'No workflow notifications for Strategy Reviewer.';
+        return;
+      }
+      wrap.innerHTML = events.slice(0, 8).map(x =>
+        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') +
+        '<div class="text-xs text-muted">By ' + AIC_SEC.escapeHtml(x.event.actorName || 'System') + ' · ' + formatDate(x.event.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div></div>'
+      ).join('');
     }
     function statCard(label, value, sub, color) {
       return '<div class="stat-card" style="--accent-color:' + color + '"><div class="stat-label">' + AIC_SEC.escapeHtml(label) + '</div><div class="stat-value">' + AIC_SEC.escapeHtml(value) + '</div><div class="stat-sub">' + AIC_SEC.escapeHtml(sub) + '</div></div>';
@@ -482,11 +506,19 @@ initPage({
         sharkCouncilMethod: autoReject ? null : sharkModel.method
       };
       AIC_DB.updateInitiative(id, patch);
+      AIC_DB.appendLifecycleEvent(id, {
+        actorName: user.name,
+        actorRole: user.role,
+        targetRoles: autoReject ? ['Initiative_Submitter'] : ['Investment_Committee'],
+        type: autoReject ? 'REJECTED_GATEKEEPER' : 'FORWARDED_TO_CXO',
+        label: autoReject ? 'Rejected by Strategy Reviewer' : 'Submitted to CXO for council vote',
+        details: autoReject ? 'Initiative sent back with rejection decision.' : 'Gatekeeper review completed and routed to council.'
+      });
       AIC_SEC.audit('GATEKEEPER_SCORE_SUBMITTED', { id, score, recommendation: rec, autoReject }, 'INFO');
       showToast(autoReject ? 'Scoring completed. Initiative rejected (<50) and status sent to Initiator.' : 'Scoring completed and submitted to CXO with shark verdict pack.', autoReject ? 'warning' : 'success');
       document.querySelector('.tab[data-tab="pending"]').click();
       cache = AIC_DB.getInitiatives();
-      renderStats(); renderPending(); renderPipeline(); renderInsights(); buildPickList();
+      renderStats(); renderNotifications(); renderPending(); renderPipeline(); renderInsights(); buildPickList();
     });
 
     function renderInsights() {
@@ -544,6 +576,7 @@ initPage({
     });
 
     renderStats();
+    renderNotifications();
     renderPending();
     renderPipeline();
     buildPickList();

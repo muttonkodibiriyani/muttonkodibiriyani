@@ -497,7 +497,17 @@ initPage({
         tags: [state.priority, state.domain].filter(Boolean),
         attachments: [],
         dimensions: {},
-        sharkVerdicts: []
+        sharkVerdicts: [],
+        lifecycleEvents: [{
+          id: 'evt-' + Date.now(),
+          timestamp: new Date().toISOString(),
+          actorName: user.name,
+          actorRole: user.role,
+          targetRoles: ['Strategy_Reviewer'],
+          type: 'SUBMITTED',
+          label: 'Initiative submitted to Strategy Reviewer',
+          details: 'Submission entered Gatekeeper Review queue.'
+        }]
       };
 
       const created = AIC_DB.createInitiative(initiative);

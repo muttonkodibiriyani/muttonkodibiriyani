@@ -494,7 +494,8 @@ const AIC_DB = (function () {
       stageGates: [],
       benefitsActuals: [],
       tags: [],
-      attachments: []
+      attachments: [],
+      lifecycleEvents: []
     }, data, { id: id });
     list.push(obj);
     write(KEYS.initiatives, list);
@@ -509,6 +510,22 @@ const AIC_DB = (function () {
     write(KEYS.initiatives, list);
     api.addAuditEvent({ action:'INITIATIVE_UPDATED', data:{ id: id, fields: Object.keys(patch) }, severity:'INFO' });
     return list[idx];
+  };
+  api.appendLifecycleEvent = function (id, event) {
+    const initiative = api.getInitiative(id);
+    if (!initiative) return null;
+    const existing = Array.isArray(initiative.lifecycleEvents) ? initiative.lifecycleEvents : [];
+    const entry = Object.assign({
+      id: 'evt-' + Math.random().toString(36).slice(2, 10),
+      timestamp: nowIso(),
+      actorName: 'System',
+      actorRole: 'System',
+      targetRoles: [],
+      type: 'STATUS_UPDATE',
+      label: 'Lifecycle status updated',
+      details: ''
+    }, event || {});
+    return api.updateInitiative(id, { lifecycleEvents: existing.concat([entry]) });
   };
   api.deleteInitiative = function (id) {
     return api.updateInitiative(id, { deleted: true, status: 'Deleted' });
@@ -594,7 +611,17 @@ const AIC_DB = (function () {
         sourceDraftId: draft.id,
         projectedGatekeeperScore: draft.projectedGatekeeperScore || null,
         scoreBand: draft.scoreBand || null
-      }
+      },
+      lifecycleEvents: [{
+        id: 'evt-' + Date.now(),
+        timestamp: nowIso(),
+        actorName: user ? user.name : (draft.submittedBy || 'Initiator'),
+        actorRole: user ? user.role : 'Initiative_Submitter',
+        targetRoles: ['Strategy_Reviewer'],
+        type: 'SUBMITTED',
+        label: 'Initiative submitted to Strategy Reviewer',
+        details: 'Draft submitted into Gatekeeper Review queue.'
+      }]
     });
     api.deleteDraft(draftId);
     api.addAuditEvent({ action:'DRAFT_SUBMITTED', data:{ draftId: draftId, initiativeId: created.id }, severity:'INFO' });

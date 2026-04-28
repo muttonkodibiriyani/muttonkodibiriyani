@@ -43,6 +43,10 @@
   </header>
   <main class="page-body">
     <div class="stat-grid" id="stat-grid"></div>
+    <div class="card mb-md">
+      <div class="card-header"><h3 class="card-title">Workflow Notifications</h3></div>
+      <div id="cxo-notifications" class="text-sm text-muted">No workflow notifications.</div>
+    </div>
 
     <div class="grid grid-2 mb-lg">
       <div class="card">
@@ -183,11 +187,39 @@ initPage({
           cxoVetoBy: user.name,
           cxoVetoAt: new Date().toISOString()
         });
+        AIC_DB.appendLifecycleEvent(id, {
+          actorName: user.name,
+          actorRole: user.role,
+          targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer'],
+          type: 'CXO_VETO',
+          label: 'CXO veto override applied',
+          details: 'Decision changed to: ' + newDecision
+        });
         AIC_SEC.audit('CXO_VETO_OVERRIDE', { id, previousStatus: initiative.status, newStatus }, 'WARN');
         showToast('CXO veto override applied', 'warning');
         cache = AIC_DB.getInitiatives();
         renderStats(); renderTable(); renderCharts();
       }));
+    }
+    function renderNotifications() {
+      const wrap = document.getElementById('cxo-notifications');
+      const events = [];
+      cache.forEach(i => {
+        (i.lifecycleEvents || []).forEach(e => {
+          if ((e.targetRoles || []).indexOf('Investment_Committee') >= 0) {
+            events.push({ initiativeId: i.id, title: i.title, event: e });
+          }
+        });
+      });
+      events.sort((a, b) => String(b.event.timestamp || '').localeCompare(String(a.event.timestamp || '')));
+      if (!events.length) {
+        wrap.textContent = 'No workflow notifications for Investment Committee.';
+        return;
+      }
+      wrap.innerHTML = events.slice(0, 8).map(x =>
+        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') +
+        '<div class="text-xs text-muted">By ' + AIC_SEC.escapeHtml(x.event.actorName || 'System') + ' · ' + formatDate(x.event.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div></div>'
+      ).join('');
     }
 
     function renderKanban() {
@@ -333,14 +365,23 @@ initPage({
         votedBy: user.name,
         votedAt: new Date().toISOString()
       });
+      AIC_DB.appendLifecycleEvent(id, {
+        actorName: user.name,
+        actorRole: user.role,
+        targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer'],
+        type: decision === 'Rejected' ? 'REJECTED_CXO' : 'APPROVED_CXO',
+        label: decision === 'Rejected' ? 'Rejected by CXO council' : 'Approved by CXO council',
+        details: 'Council recommendation: ' + rec + '.'
+      });
       AIC_SEC.audit('COUNCIL_VOTE', { id, score, recommendation: rec }, 'INFO');
       showToast('Council vote recorded — ' + rec, 'success');
       closeModal();
       cache = AIC_DB.getInitiatives();
-      renderStats(); renderTable(); renderCharts();
+      renderStats(); renderNotifications(); renderTable(); renderCharts();
     });
 
     renderStats();
+    renderNotifications();
     renderTable();
     renderCharts();
   }

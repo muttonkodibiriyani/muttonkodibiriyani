@@ -52,6 +52,7 @@
 
     <div class="tabs" id="tabs">
       <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="activity">Activity</button>
       <button class="tab" data-tab="sharks">Shark Verdicts</button>
       <button class="tab" data-tab="scorecard">Scorecard</button>
       <button class="tab" data-tab="bear">Bear Case</button>
@@ -61,6 +62,7 @@
     </div>
 
     <section id="tab-overview" class="tab-panel active"></section>
+    <section id="tab-activity" class="tab-panel"></section>
     <section id="tab-sharks" class="tab-panel"></section>
     <section id="tab-scorecard" class="tab-panel"></section>
     <section id="tab-bear" class="tab-panel"></section>
@@ -132,6 +134,32 @@ initPage({
             (init.financialCase ? '<div class="card"><div class="card-header"><h3 class="card-title">Financial Case</h3></div><p class="text-sm">' + SH(init.financialCase) + '</p></div>' : '') +
           '</div>' +
         '</div>';
+    }
+    function renderActivity() {
+      let events = (init.lifecycleEvents || []).slice();
+      if (!events.length && init.submittedDate) {
+        events.push({
+          timestamp: init.submittedDate,
+          actorName: init.submittedBy || 'Initiator',
+          actorRole: 'Initiative_Submitter',
+          label: 'Initiative submitted',
+          details: 'Submitted into workflow.'
+        });
+      }
+      events.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+      if (!events.length) {
+        document.getElementById('tab-activity').innerHTML = '<div class="card text-center text-muted p-lg">No activity recorded yet.</div>';
+        return;
+      }
+      document.getElementById('tab-activity').innerHTML = '<div class="card">' +
+        events.map(e =>
+          '<div style="padding:10px 0;border-bottom:1px solid var(--color-border);">' +
+            '<div><strong>' + SH(e.label || 'Status updated') + '</strong></div>' +
+            '<div class="text-xs text-muted">By ' + SH(e.actorName || 'System') + ' (' + SH(e.actorRole || 'System') + ') · ' + formatDate(e.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div>' +
+            (e.details ? '<div class="text-sm mt-sm">' + SH(e.details) + '</div>' : '') +
+          '</div>'
+        ).join('') +
+      '</div>';
     }
     function row(k, v) { return '<div class="flex justify-between text-sm" style="padding:6px 0;border-bottom:1px solid var(--color-border);"><span class="text-muted">' + SH(k) + '</span><strong>' + SH(v != null && v !== '' ? v : '—') + '</strong></div>'; }
 
@@ -283,6 +311,14 @@ initPage({
         if (!ok) return;
         const newGates = (init.stageGates || []).map(g => g.stage === stage ? Object.assign({}, g, { status:'Active' }) : g);
         AIC_DB.updateInitiative(init.id, { stageGates: newGates, stage: stage.replace(':',' —') });
+        AIC_DB.appendLifecycleEvent(init.id, {
+          actorName: user.name,
+          actorRole: user.role,
+          targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer', 'Investment_Committee'],
+          type: 'STAGE_GATE_APPROVED',
+          label: 'Stage gate approved',
+          details: stage + ' approved and activated.'
+        });
         AIC_SEC.audit('STAGE_GATE_APPROVED', { id: init.id, stage }, 'INFO');
         AIC_SEC.flushAudit();
         showToast('Stage gate approved — ' + stage, 'success');
@@ -325,6 +361,7 @@ initPage({
 
     renderHeader();
     renderOverview();
+    renderActivity();
     renderSharks();
     renderScorecard();
     renderBear();

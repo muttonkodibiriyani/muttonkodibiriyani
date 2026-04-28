@@ -52,6 +52,10 @@
 
   <main class="page-body">
     <div class="stat-grid" id="stat-grid"></div>
+    <div class="card mb-md">
+      <div class="card-header"><h3 class="card-title">Workflow Notifications</h3></div>
+      <div id="initiator-notifications" class="text-sm text-muted">No workflow notifications.</div>
+    </div>
 
     <div class="tabs" id="tabs">
       <button class="tab active" data-tab="mine">My Initiatives</button>
@@ -141,6 +145,7 @@ initPage({
       const isAdmin = user.role === 'Platform_Admin' || user.role === 'Strategy_Reviewer' || user.role === 'Investment_Committee';
       cache = isAdmin ? AIC_DB.getInitiatives() : AIC_DB.getInitiatives({ submittedById: user.id });
       renderStats();
+      renderNotifications();
       renderMine();
       renderDrafts();
       renderBenefits();
@@ -164,6 +169,27 @@ initPage({
         '<div class="stat-value">' + AIC_SEC.escapeHtml(value) + '</div>' +
         '<div class="stat-sub">' + AIC_SEC.escapeHtml(sub) + '</div>' +
       '</div>';
+    }
+    function renderNotifications() {
+      const wrap = document.getElementById('initiator-notifications');
+      const events = [];
+      cache.forEach(i => {
+        (i.lifecycleEvents || []).forEach(e => {
+          const targets = e.targetRoles || [];
+          if (targets.indexOf('Initiative_Submitter') >= 0 || (e.type === 'SUBMITTED' && i.submittedById === user.id)) {
+            events.push({ initiativeId: i.id, event: e });
+          }
+        });
+      });
+      events.sort((a, b) => String(b.event.timestamp || '').localeCompare(String(a.event.timestamp || '')));
+      if (!events.length) {
+        wrap.textContent = 'No workflow notifications for your initiatives yet.';
+        return;
+      }
+      wrap.innerHTML = events.slice(0, 8).map(x =>
+        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') +
+        '<div class="text-xs text-muted">By ' + AIC_SEC.escapeHtml(x.event.actorName || 'System') + ' · ' + formatDate(x.event.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div></div>'
+      ).join('');
     }
 
     function applyFilter(rows) {
@@ -247,6 +273,7 @@ initPage({
           showToast('Draft submitted as ' + created.id, 'success');
           cache = AIC_DB.getInitiatives({ submittedById: user.id });
           renderStats();
+          renderNotifications();
           renderMine();
           renderDrafts();
         });
