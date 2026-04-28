@@ -23,7 +23,7 @@ export default function WorkspacePage({ params, searchParams }: PageProps) {
   const kpis = buildKpis(config.role, initiatives);
 
   return (
-    <WorkspaceShell role={config.role} title={config.title} subtitle={config.subtitle} query={query}>
+    <WorkspaceShell role={config.role} title={config.title} subtitle={config.subtitle}>
       <div className="space-y-4">
         <KpiStrip kpis={kpis} />
         <InitiativeTable initiatives={initiatives} emptyMessage={config.emptyMessage} />

@@ -294,7 +294,6 @@ function renderExecutiveTopbar(role) {
   const command = document.createElement('div');
   command.className = 'exec-command';
   command.innerHTML =
-    '<div class="exec-search"><i class="fas fa-search"></i><input type="text" placeholder="Search initiatives, sponsors, domains..." /></div>' +
     '<span class="exec-cycle">FY26 · Q2 Review Cycle</span>' +
     '<button type="button" class="exec-btn"><i class="fas fa-bolt"></i> Command</button>' +
     '<button type="button" class="exec-btn"><i class="fas fa-bell"></i></button>' +
