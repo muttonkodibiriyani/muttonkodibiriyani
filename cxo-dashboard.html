@@ -198,7 +198,7 @@ initPage({
         AIC_SEC.audit('CXO_VETO_OVERRIDE', { id, previousStatus: initiative.status, newStatus }, 'WARN');
         showToast('CXO veto override applied', 'warning');
         cache = AIC_DB.getInitiatives();
-        renderStats(); renderTable(); renderCharts();
+        renderStats(); renderNotifications(); renderTable(); renderCharts();
       }));
     }
     function renderNotifications() {
@@ -306,6 +306,8 @@ initPage({
       const gkScore = i.gatekeeperScore != null ? i.gatekeeperScore : '—';
       const gkReason = i.strategyReviewerReason || i.gatekeeperNote || 'No gatekeeper rationale captured.';
       const sharkVerdicts = (i.sharkVerdicts || []).filter(v => v.shark !== 'Red Team');
+      const attachmentSummary = (i.attachments || []).length ? ((i.attachments || []).map(a => a.name).join(', ')) : 'No uploaded supporting files.';
+      const priorVotes = i.councilVotes || [];
       const sharkList = sharkVerdicts.length
         ? sharkVerdicts.map(v =>
           '<li><strong>' + AIC_SEC.escapeHtml(v.shark) + ':</strong> ' + AIC_SEC.escapeHtml(String(v.score)) +
@@ -318,6 +320,8 @@ initPage({
         '<span class="badge ' + (i.sharkCouncilScore != null ? scoreClass(i.sharkCouncilScore) : 'badge-neutral') + '">Shark Council: ' + AIC_SEC.escapeHtml(String(sharkScore)) + '</span> ' +
         '<span class="badge badge-info">Confidence: ' + AIC_SEC.escapeHtml(sharkConfidence) + '</span></div>' +
         '<div class="mb-sm"><strong>Strategy Reviewer Rationale</strong><div class="text-xs">' + AIC_SEC.escapeHtml(gkReason) + '</div></div>' +
+        '<div class="mb-sm"><strong>Uploaded Supporting Files</strong><div class="text-xs">' + AIC_SEC.escapeHtml(attachmentSummary) + '</div></div>' +
+        (priorVotes.length ? '<div class="mb-sm"><strong>Existing Council Votes</strong><div class="text-xs">' + AIC_SEC.escapeHtml(priorVotes.map(v => (v.voter + ': ' + v.score)).join(' | ')) + '</div></div>' : '') +
         '<div><strong>Shark Panel Verdicts</strong><ul class="text-xs" style="padding-left:16px;margin:8px 0 0;">' + sharkList + '</ul></div>';
     }
     function openModal() {
@@ -346,22 +350,37 @@ initPage({
       if (!just.ok) { showToast('Verdict required (min 20 chars)', 'error'); return; }
       const score = Number(document.getElementById('council-score').value);
       const rec = document.getElementById('council-rec').value;
-      const decision = ({
-        'STRONG INVEST':'Invest','INVEST':'Invest','CONDITIONAL':'Conditional Invest','NO INVEST':'Rejected'
-      })[rec];
-      const status = decision === 'Rejected' ? 'Rejected' : 'Approved';
-      const stage = decision === 'Rejected' ? 'Rejected' : 'Stage 0 — Discovery';
       const init = AIC_DB.getInitiative(id);
-      const stageRelease = decision !== 'Rejected' ? Math.round((init.budgetRequested || 0) * AIC_CONFIG.financial.stageFunding.stage0Pct) : 0;
+      const existingVotes = Array.isArray(init.councilVotes) ? init.councilVotes.slice() : [];
+      const withoutMine = existingVotes.filter(v => v.voterId !== user.id);
+      const updatedVotes = withoutMine.concat([{
+        voterId: user.id,
+        voter: user.name,
+        score: score,
+        recommendation: rec,
+        verdict: just.value,
+        votedAt: new Date().toISOString()
+      }]);
+      const avgScore = Math.round(updatedVotes.reduce((a, v) => a + (Number(v.score) || 0), 0) / updatedVotes.length);
+      const recommendationCounts = updatedVotes.reduce((a, v) => { a[v.recommendation] = (a[v.recommendation] || 0) + 1; return a; }, {});
+      const topRecommendation = Object.keys(recommendationCounts).sort((a, b) => recommendationCounts[b] - recommendationCounts[a])[0] || rec;
+      const avgDecision = ({
+        'STRONG INVEST':'Invest',
+        'INVEST':'Invest',
+        'CONDITIONAL':'Conditional Invest',
+        'NO INVEST':'Rejected'
+      })[topRecommendation];
+      const stageRelease = avgDecision !== 'Rejected' ? Math.round((init.budgetRequested || 0) * AIC_CONFIG.financial.stageFunding.stage0Pct) : 0;
       AIC_DB.updateInitiative(id, {
-        councilScore: score,
-        decision: decision,
-        status: status === 'Approved' ? 'Approved by CXO' : status,
-        stage: stage,
-        budgetApproved: decision === 'Rejected' ? 0 : init.budgetRequested,
+        councilVotes: updatedVotes,
+        councilScore: avgScore,
+        decision: avgDecision,
+        status: avgDecision === 'Rejected' ? 'Rejected' : 'Approved by CXO',
+        stage: avgDecision === 'Rejected' ? 'Rejected' : 'Stage 0 — Discovery',
+        budgetApproved: avgDecision === 'Rejected' ? 0 : init.budgetRequested,
         stageRelease: stageRelease,
         councilVerdict: just.value,
-        councilRecommendation: rec,
+        councilRecommendation: topRecommendation,
         votedBy: user.name,
         votedAt: new Date().toISOString()
       });
@@ -369,9 +388,9 @@ initPage({
         actorName: user.name,
         actorRole: user.role,
         targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer'],
-        type: decision === 'Rejected' ? 'REJECTED_CXO' : 'APPROVED_CXO',
-        label: decision === 'Rejected' ? 'Rejected by CXO council' : 'Approved by CXO council',
-        details: 'Council recommendation: ' + rec + '.'
+        type: avgDecision === 'Rejected' ? 'REJECTED_CXO' : 'APPROVED_CXO',
+        label: avgDecision === 'Rejected' ? 'Rejected by CXO council' : 'Approved by CXO council',
+        details: 'Council vote recorded (' + updatedVotes.length + ' vote(s)); average score ' + avgScore + ', top recommendation ' + topRecommendation + '.'
       });
       AIC_SEC.audit('COUNCIL_VOTE', { id, score, recommendation: rec }, 'INFO');
       showToast('Council vote recorded — ' + rec, 'success');

@@ -122,6 +122,7 @@ initPage({
         { stage:'Stage 2: Scaled Pilot', criteria:['','',''], targetDate:'' },
         { stage:'Stage 3: Full Rollout', criteria:['','',''], targetDate:'' }
       ],
+      attachments: [],
       acknowledged: false
     };
 
@@ -229,6 +230,30 @@ initPage({
         if (el) el.value = state[k];
       });
     }
+    function toTextIfPossible(file) {
+      const isTextLike = /^text\//.test(file.type) || /\.(txt|md|csv|json|xml)$/i.test(file.name || '');
+      if (!isTextLike) return Promise.resolve('');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || '').slice(0, 6000));
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+    function renderAttachmentUploader(sectionKey, label) {
+      const items = (state.attachments || []).filter(a => a.section === sectionKey);
+      return '<div class="card mb-md" style="background:var(--color-surface2);">' +
+        '<div class="card-header"><h4 class="card-title">' + AIC_SEC.escapeHtml(label) + '</h4></div>' +
+        '<input type="file" data-attach-input="' + AIC_SEC.encodeAttr(sectionKey) + '" multiple />' +
+        '<small class="form-help">Upload supporting files (PDF, DOCX, PPTX, XLSX, CSV, TXT). Text files are parsed for shark council context.</small>' +
+        '<div class="mt-sm">' +
+        (items.length ? items.map((f, idx) =>
+          '<div class="text-xs" style="padding:4px 0;border-bottom:1px solid var(--color-border);">' +
+          AIC_SEC.escapeHtml(f.name) + ' (' + Math.round((f.size || 0) / 1024) + ' KB) ' +
+          '<button class="btn btn-ghost btn-sm" type="button" data-attach-remove="' + AIC_SEC.encodeAttr(sectionKey + '::' + idx) + '">Remove</button></div>'
+        ).join('') : '<div class="text-xs text-muted">No files uploaded yet.</div>') +
+        '</div></div>';
+    }
 
     function renderStep() {
       const c = document.getElementById('step-container');
@@ -257,6 +282,7 @@ initPage({
         html += field('Cost of Inaction (USD)', 'costOfInaction', 'number', { placeholder:'Annual ongoing cost of doing nothing' });
         html += field('Size of Prize (USD)', 'sizeOfPrize', 'number', { placeholder:'Realistic upside potential' });
         html += '</div>';
+        html += renderAttachmentUploader('problem', 'Problem and evidence supporting documents');
       } else if (step === 3) {
         html = '<h2 style="margin-top:0;">Step 3 — Proposed Solution</h2>';
         html += field('Solution Description', 'description', 'textarea', { required:true });
@@ -266,6 +292,7 @@ initPage({
         html += '</div>';
         html += field('Key Dependencies', 'dependencies', 'textarea', { placeholder:'External APIs, vendor contracts, brand approvals, regulatory…' });
         html += field('High-Level Timeline', 'timeline', 'textarea', { placeholder:'Discovery → MVP → Pilot → Rollout milestone dates' });
+        html += renderAttachmentUploader('solution', 'Solution architecture and implementation documents');
       } else if (step === 4) {
         html = '<h2 style="margin-top:0;">Step 4 — Financial Case</h2>';
         html += field('Total Budget Requested (USD)', 'budgetRequested', 'number', { required:true, min:0 });
@@ -285,6 +312,7 @@ initPage({
         html += '</div>';
         html += field('Financial Case Narrative', 'financialCase', 'textarea');
         html += '<div id="payback-warn"></div>';
+        html += renderAttachmentUploader('financial', 'Financial model and business case documents');
       } else if (step === 5) {
         html = '<h2 style="margin-top:0;">Step 5 — Measurement Plan</h2>';
         html += '<div class="form-row-3">';
@@ -306,6 +334,7 @@ initPage({
         html += field('Accountable Owner', 'accountableOwner', 'text', { required:true });
         html += field('First Review Date', 'firstReviewDate', 'date');
         html += '</div>';
+        html += renderAttachmentUploader('measurement', 'Measurement plan and KPI evidence');
       } else if (step === 6) {
         html = '<h2 style="margin-top:0;">Step 6 — Risk &amp; Bear Case</h2>';
         for (let n = 0; n < 3; n++) {
@@ -321,6 +350,7 @@ initPage({
         }
         html += field('Bear Case Narrative', 'bearCase', 'textarea', { required:true, placeholder:'It is [18 months from now]. The initiative consumed $X and delivered only Y% of target. Root cause: …' });
         html += field('Franchise Note (optional)', 'franchiseNote', 'textarea', { placeholder:'How is value split between Alshaya and brand partner?' });
+        html += renderAttachmentUploader('risk', 'Risk register and mitigation supporting documents');
       } else if (step === 7) {
         html = '<h2 style="margin-top:0;">Step 7 — Stage Gate Plan</h2>';
         for (let s = 0; s < 4; s++) {
@@ -333,6 +363,7 @@ initPage({
           }
           html += '</div>';
         }
+        html += renderAttachmentUploader('stage-gates', 'Stage-gate evidence and milestone documents');
       } else if (step === 8) {
         html = '<h2 style="margin-top:0;">Step 8 — Review &amp; Submit</h2>';
         html += renderReviewSummary();
@@ -364,6 +395,36 @@ initPage({
       if (step === 8) {
         c.querySelector('#ack').addEventListener('change', e => state.acknowledged = e.target.checked);
       }
+      c.querySelectorAll('[data-attach-input]').forEach(el => el.addEventListener('change', async (e) => {
+        const section = e.target.getAttribute('data-attach-input');
+        const files = Array.from(e.target.files || []);
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (!file || file.size > 5 * 1024 * 1024) { showToast('Each file must be <= 5MB', 'warning'); continue; }
+          const extractedText = await toTextIfPossible(file);
+          state.attachments.push({
+            section: section,
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            extractedText: extractedText
+          });
+        }
+        autosave();
+        render();
+      }));
+      c.querySelectorAll('[data-attach-remove]').forEach(el => el.addEventListener('click', (e) => {
+        const key = e.target.getAttribute('data-attach-remove');
+        const parts = String(key).split('::');
+        const section = parts[0];
+        const index = Number(parts[1]);
+        const sectionItems = (state.attachments || []).filter(a => a.section === section);
+        const selected = sectionItems[index];
+        if (!selected) return;
+        state.attachments = (state.attachments || []).filter(a => a !== selected);
+        autosave();
+        render();
+      }));
       if (step === 4) {
         const w = c.querySelector('#payback-warn');
         if (w) {
@@ -385,7 +446,7 @@ initPage({
         '<div class="card" style="background:var(--color-surface2);">' +
           '<h4>Basics</h4>' +
           sec('Title', state.title) + sec('Domain', state.domain) + sec('Priority', state.priority) +
-          sec('Sponsor', state.sponsor) + sec('Markets', (state.markets || []).join(', ')) +
+          sec('Sponsor', state.sponsor) + sec('Markets', (state.markets || []).join(', ')) + sec('Start Date', state.startDate) +
         '</div>' +
         '<div class="card" style="background:var(--color-surface2);">' +
           '<h4>Financial</h4>' +
@@ -393,7 +454,7 @@ initPage({
           sec('Annual Benefit', formatCurrency(state.annualBenefit)) +
           sec('Payback', state.payback + ' months') +
           sec('NPV @ 5y', formatCurrency(state.npv5)) +
-          sec('IRR', state.irr + '%') +
+          sec('IRR', state.irr + '%') + sec('Attachments', String((state.attachments || []).length)) +
         '</div>' +
         '<div class="card" style="background:var(--color-surface2);grid-column:1/-1;">' +
           '<h4>Problem</h4><div class="text-sm text-muted">' + AIC_SEC.escapeHtml(state.problemStatement || '—') + '</div>' +
@@ -407,19 +468,35 @@ initPage({
     function validateStep() {
       switch (state.step) {
         case 1:
-          if (!state.title.trim() || !state.domain) { showToast('Title and domain are required', 'error'); return false; }
+          if (!state.title.trim() || !state.domain || !state.sponsor.trim() || !state.startDate) { showToast('Title, domain, sponsor and start date are required', 'error'); return false; }
           if (!Array.isArray(state.markets) || !state.markets.length) { showToast('Select at least one target market', 'error'); return false; }
+          if (!state.brands || !String(state.brands).trim()) { showToast('Target brands are required', 'error'); return false; }
           break;
         case 2:
-          if (!state.problemStatement || state.problemStatement.length < 100) { showToast('Problem statement min 100 characters', 'error'); return false; } break;
+          if (!state.problemStatement || state.problemStatement.length < 100) { showToast('Problem statement min 100 characters', 'error'); return false; }
+          if (!state.customerEvidence || state.customerEvidence.length < 40) { showToast('Customer evidence must be detailed (min 40 chars)', 'error'); return false; }
+          if (!(Number(state.costOfInaction) > 0) || !(Number(state.sizeOfPrize) > 0)) { showToast('Cost of inaction and size of prize are mandatory', 'error'); return false; }
+          break;
         case 3:
-          if (!state.description.trim()) { showToast('Solution description required', 'error'); return false; } break;
+          if (!state.description.trim() || !state.buyVsBuildJust.trim() || !state.dependencies.trim() || !state.timeline.trim()) { showToast('All solution fields are mandatory', 'error'); return false; }
+          break;
         case 4:
-          if (!state.budgetRequested || state.budgetRequested <= 0) { showToast('Budget requested must be > 0', 'error'); return false; } break;
+          if (!state.budgetRequested || state.budgetRequested <= 0) { showToast('Budget requested must be > 0', 'error'); return false; }
+          if (!(Number(state.annualBenefit) > 0) || !(Number(state.npv5) > 0) || !(Number(state.irr) > 0) || !state.financialCase.trim()) { showToast('All financial metrics and narrative are mandatory', 'error'); return false; }
+          break;
         case 5:
-          if (!state.primaryMetric || !state.accountableOwner) { showToast('Primary metric and owner required', 'error'); return false; } break;
+          if (!state.primaryMetric || !state.primaryBaseline || !state.primaryTarget || !state.accountableOwner || !state.dataSource || !state.attributionMethod || !state.firstReviewDate || !state.leadingIndicators) { showToast('All measurement fields are mandatory', 'error'); return false; }
+          if (!state.secondary1 || !state.secondary2 || !state.secondary3) { showToast('All three secondary KPIs are mandatory', 'error'); return false; }
+          break;
         case 6:
-          if (!state.bearCase || state.bearCase.length < 50) { showToast('Bear case narrative required (≥50 chars)', 'error'); return false; } break;
+          if (!state.bearCase || state.bearCase.length < 50) { showToast('Bear case narrative required (≥50 chars)', 'error'); return false; }
+          const allRisksFilled = state.risks.every(r => r.risk && r.mitigation && Number(r.likelihood) >= 1 && Number(r.impact) >= 1);
+          if (!allRisksFilled) { showToast('All risk rows must be fully completed', 'error'); return false; }
+          break;
+        case 7:
+          const stageOk = state.stageGates.every(g => g.targetDate && (g.criteria || []).every(Boolean));
+          if (!stageOk) { showToast('All stage-gate dates and exit criteria are mandatory', 'error'); return false; }
+          break;
         case 8:
           if (!state.acknowledged) { showToast('Please acknowledge data classification', 'error'); return false; } break;
       }
@@ -495,7 +572,7 @@ initPage({
         risks: state.risks.filter(r => r.risk),
         benefitsActuals: [],
         tags: [state.priority, state.domain].filter(Boolean),
-        attachments: [],
+        attachments: state.attachments || [],
         dimensions: {},
         sharkVerdicts: [],
         lifecycleEvents: [{

@@ -130,6 +130,7 @@ initPage({
               row('Submitted', formatDate(init.submittedDate)) +
               row('Brands', (init.brands || []).join(', ')) +
               row('Markets', (init.markets && init.markets.length ? init.markets.join(', ') : init.country)) +
+              row('Supporting Files', (init.attachments || []).length) +
             '</div>' +
             (init.financialCase ? '<div class="card"><div class="card-header"><h3 class="card-title">Financial Case</h3></div><p class="text-sm">' + SH(init.financialCase) + '</p></div>' : '') +
           '</div>' +
@@ -329,16 +330,37 @@ initPage({
 
     function renderEntry() {
       const canCouncil = AIC_SEC.hasRole(user.role, 'Investment_Committee');
+      const canClose = (user.role === 'Initiative_Submitter' || user.role === 'Strategy_Reviewer' || user.role === 'Platform_Admin') && (init.status === 'Approved by CXO' || init.status === 'Rejected' || init.status === 'Rejected by Gatekeeper');
       let html = '';
       if (init.scoredBy) {
         html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Gatekeeper Submission</h3></div>' +
           row('Scored By', init.scoredBy) + row('Scored At', formatDate(init.scoredAt)) + row('Score', init.gatekeeperScore) +
           row('Justification', init.gatekeeperNote) + row('Conditions', init.gatekeeperConditions) + '</div>';
       }
-      if (init.votedBy) {
+      if (init.councilVotes && init.councilVotes.length) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Council Votes</h3></div>' +
+          row('Average Council Score', init.councilScore) +
+          row('Final Recommendation', init.councilRecommendation) +
+          row('Final Verdict', init.councilVerdict) +
+          '<div class="mt-sm">' + init.councilVotes.map(v =>
+            '<div class="text-xs" style="padding:4px 0;border-bottom:1px solid var(--color-border);">' +
+            SH(v.voter) + ' · score ' + SH(String(v.score)) + ' · ' + SH(v.recommendation) + ' · ' + formatDate(v.votedAt) + '</div>'
+          ).join('') + '</div></div>';
+      } else if (init.votedBy) {
         html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Council Vote</h3></div>' +
           row('Voted By', init.votedBy) + row('Voted At', formatDate(init.votedAt)) + row('Score', init.councilScore) +
           row('Recommendation', init.councilRecommendation) + row('Verdict', init.councilVerdict) + '</div>';
+      }
+      if (init.sharkCouncilScore != null) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Shark Council Outcome</h3></div>' +
+          row('Shark Council Score', init.sharkCouncilScore) +
+          row('Confidence', init.sharkCouncilConfidence) +
+          row('Method', init.sharkCouncilMethod) + '</div>';
+      }
+      if (canClose) {
+        html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Close Ticket</h3></div>' +
+          '<p class="text-sm text-muted">Once you reviewed all scores and reasons, you can close this initiative ticket.</p>' +
+          '<button class="btn btn-danger" id="btn-close-ticket"><i class="fas fa-circle-xmark"></i> Close Ticket</button></div>';
       }
       if (canCouncil) {
         html += '<div class="card"><div class="card-header"><h3 class="card-title">Cast Council Score</h3></div>' +
@@ -348,6 +370,23 @@ initPage({
         html = '<div class="card text-center text-muted p-lg">No scoring activity recorded yet.</div>';
       }
       document.getElementById('tab-entry').innerHTML = html;
+      const closeBtn = document.getElementById('btn-close-ticket');
+      if (closeBtn) closeBtn.addEventListener('click', async () => {
+        const ok = await showConfirm('Close initiative ticket', 'Close this initiative ticket? This will mark it as closed for portfolio tracking.', 'Close Ticket');
+        if (!ok) return;
+        AIC_DB.updateInitiative(init.id, { status: 'Closed', stage: 'Completed', decision: (init.decision || 'Closed') + ' · Ticket Closed' });
+        AIC_DB.appendLifecycleEvent(init.id, {
+          actorName: user.name,
+          actorRole: user.role,
+          targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer', 'Investment_Committee'],
+          type: 'TICKET_CLOSED',
+          label: 'Initiative ticket closed',
+          details: 'Ticket closed after review of gatekeeper, shark and council outcomes.'
+        });
+        init = AIC_DB.getInitiative(init.id);
+        renderHeader(); renderActivity(); renderEntry();
+        showToast('Ticket closed successfully.', 'success');
+      });
     }
 
     document.getElementById('tabs').addEventListener('click', (e) => {

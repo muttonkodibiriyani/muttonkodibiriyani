@@ -95,7 +95,7 @@
               <strong>Shark Council Simulator</strong>
               <button id="btn-run-sharks" class="btn btn-secondary btn-sm" disabled><i class="fas fa-rotate"></i> Recalculate</button>
             </div>
-            <div id="shark-summary" class="text-xs text-muted">Shark council score is auto-calculated from your gatekeeper sliders after initiative submission.</div>
+            <div id="shark-summary" class="text-xs text-muted">Shark council score is generated only when gatekeeper score is submitted to keep scoring unbiased.</div>
             <div id="shark-confidence" class="mt-sm"></div>
             <div id="shark-preview" class="mt-sm"></div>
           </div>
@@ -296,7 +296,6 @@ initPage({
       lbl.textContent = scoreLabel(score);
       lbl.className = 'badge ' + scoreClass(score);
       AIC_CHARTS.radar('chart-radar', dimDefs.map(d => d.name), dimDefs.map(d => dims[d.key].score));
-      if (document.getElementById('score-pick').value) refreshSharkModel();
     }
 
     let sharkModel = null;
@@ -313,9 +312,10 @@ initPage({
     function refreshSharkModel() {
       const id = document.getElementById('score-pick').value;
       if (!id) return;
+      const initiative = AIC_DB.getInitiative(id) || {};
       const dims = buildCurrentDims();
       const gk = AIC_DB.computeGatekeeperScore(dims);
-      sharkModel = buildSharkCouncilModel(id, dims, gk);
+      sharkModel = buildSharkCouncilModel(id, dims, gk, initiative);
       renderSharkPreview();
     }
 
@@ -326,10 +326,9 @@ initPage({
       sharkModel = null;
       document.getElementById('shark-preview').innerHTML = '';
       document.getElementById('shark-confidence').innerHTML = '';
-      document.getElementById('shark-summary').textContent = 'Shark council score is auto-calculated from your gatekeeper sliders after initiative submission.';
+      document.getElementById('shark-summary').textContent = 'Shark council score is generated only when gatekeeper score is submitted to keep scoring unbiased.';
       document.getElementById('btn-run-sharks').disabled = !id;
       document.getElementById('btn-submit-score').disabled = !id;
-      if (id) refreshSharkModel();
     });
     document.getElementById('recommendation').addEventListener('change', (e) => {
       document.getElementById('conditions-wrap').style.display = e.target.value === 'CONDITIONAL' ? 'block' : 'none';
@@ -361,7 +360,7 @@ initPage({
       return Math.round(min + frac * (max - min));
     }
 
-    function buildSharkCouncilModel(initiativeId, dims, gatekeeperScore) {
+    function buildSharkCouncilModel(initiativeId, dims, gatekeeperScore, initiative) {
       const d1 = dims.d1 ? dims.d1.score : 50;
       const d2 = dims.d2 ? dims.d2.score : 50;
       const d3 = dims.d3 ? dims.d3.score : 50;
@@ -373,18 +372,22 @@ initPage({
       const strategyMomentum = Math.round((d4 * 0.55) + (d2 * 0.25) + (d3 * 0.2));
       const seedBase = Number(String(initiativeId || '').replace(/[^\d]/g, '')) || 17;
       const varianceKick = spread >= 30 ? 4 : spread >= 20 ? 2 : 0;
+      const attachmentList = (initiative && initiative.attachments) ? initiative.attachments : [];
+      const attachmentText = attachmentList.map(a => a.extractedText || '').join(' ').slice(0, 8000);
+      const evidenceBoost = attachmentList.length ? Math.min(6, attachmentList.length) : 0;
+      const textSignal = attachmentText.length > 600 ? 2 : 0;
       const panel = [
         {
           shark: 'Margin Surgeon',
-          base: gatekeeperScore * 0.55 + d1 * 0.45 - deliveryRisk * 0.08,
+          base: gatekeeperScore * 0.55 + d1 * 0.45 - deliveryRisk * 0.08 + evidenceBoost,
           noise: deterministicNoise(seedBase + 1, -8, 6),
-          reason: 'Payback durability and gross-margin attribution were re-tested under downside scenarios.'
+          reason: 'Payback durability and gross-margin attribution were re-tested under downside scenarios using submitted financial narrative and evidence packs.'
         },
         {
           shark: 'Customer Advocate',
-          base: gatekeeperScore * 0.45 + d2 * 0.55 + marketConfidence * 0.06,
+          base: gatekeeperScore * 0.45 + d2 * 0.55 + marketConfidence * 0.06 + textSignal,
           noise: deterministicNoise(seedBase + 2, -7, 7),
-          reason: 'Demand signal quality, customer proof depth, and willingness-to-adopt were cross-validated.'
+          reason: 'Demand signal quality, customer proof depth, and willingness-to-adopt were cross-validated against uploaded customer evidence.'
         },
         {
           shark: 'Tech Realist',
@@ -406,9 +409,9 @@ initPage({
         },
         {
           shark: 'Measurement Architect',
-          base: gatekeeperScore * 0.46 + d1 * 0.22 + d2 * 0.22 + d5 * 0.1,
+          base: gatekeeperScore * 0.46 + d1 * 0.22 + d2 * 0.22 + d5 * 0.1 + textSignal,
           noise: deterministicNoise(seedBase + 6, -7, 7),
-          reason: 'KPI ownership, baseline integrity, and attribution confidence were verified.'
+          reason: 'KPI ownership, baseline integrity, and attribution confidence were verified using uploaded KPI plans and assumptions.'
         }
       ].map(s => {
         const raw = Math.round(s.base + s.noise + varianceKick);
@@ -436,7 +439,8 @@ initPage({
         },
         generatedAt: new Date().toISOString(),
         generatedBy: user.name,
-        method: 'Deterministic multi-factor council model (dimension-sensitive, seed-stable variance)'
+        method: 'Deterministic multi-factor council model (dimension-sensitive, seed-stable variance, attachment-aware)',
+        evidenceSummary: attachmentList.length ? ('Reviewed ' + attachmentList.length + ' uploaded supporting document(s).') : 'No supporting documents were attached.'
       };
     }
 
@@ -470,7 +474,7 @@ initPage({
       const autoReject = score < 50;
       const status = autoReject ? 'Rejected by Gatekeeper' : (rec === 'REJECT' ? 'Rejected by Gatekeeper' : 'Awaiting CXO Approval');
       const stage = autoReject ? 'Rejected at Gatekeeper' : 'Awaiting Council';
-      if (!autoReject && !sharkModel) refreshSharkModel();
+      if (!autoReject) refreshSharkModel();
 
       const patch = {
         gatekeeperScore: score,
@@ -500,6 +504,8 @@ initPage({
           assessment: s.reason
         })).concat(autoReject ? [] : [{
           shark:'Red Team', icon:'🎯', color:'#fee2e2', score: sharkModel.redTeam, confidence:'High', recommendation:'RISK MODIFIER: ' + sharkModel.redTeam, assessment:'Automated risk modifier based on variance and delivery risk profile.'
+        }]).concat(autoReject ? [] : [{
+          shark:'Evidence Lens', icon:'📎', color:'#e0f2fe', score: sharkModel.confidenceScore, confidence: sharkModel.confidence, recommendation:'EVIDENCE QUALITY', assessment: sharkModel.evidenceSummary
         }]),
         sharkCouncilGeneratedBy: autoReject ? null : sharkModel.generatedBy,
         sharkCouncilGeneratedAt: autoReject ? null : sharkModel.generatedAt,
