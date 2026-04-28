@@ -177,6 +177,9 @@ initPage({
   allowedRoles: ['Strategy_Reviewer','Platform_Admin'],
   onReady: async function (user) {
     let cache = AIC_DB.getInitiatives();
+    function seenKey() { return 'aic_seen_events_Strategy_Reviewer_' + user.id; }
+    function getSeenTs() { return localStorage.getItem(seenKey()) || ''; }
+    function markSeenNow() { localStorage.setItem(seenKey(), new Date().toISOString()); }
 
     function pending() { return cache.filter(i => i.status === 'Submitted' || i.status === 'Under Review' || i.stage === 'Gatekeeper Review'); }
     function awaitingCouncil() { return cache.filter(i => i.status === 'Awaiting CXO Approval' || i.stage === 'Awaiting Council'); }
@@ -196,10 +199,11 @@ initPage({
     function renderNotifications() {
       const wrap = document.getElementById('strategy-notifications');
       const events = [];
+      const seenTs = getSeenTs();
       cache.forEach(i => {
         (i.lifecycleEvents || []).forEach(e => {
           if ((e.targetRoles || []).indexOf('Strategy_Reviewer') >= 0) {
-            events.push({ initiativeId: i.id, title: i.title, event: e });
+            events.push({ initiativeId: i.id, title: i.title, event: e, unread: !seenTs || String(e.timestamp || '') > String(seenTs) });
           }
         });
       });
@@ -208,10 +212,14 @@ initPage({
         wrap.textContent = 'No workflow notifications for Strategy Reviewer.';
         return;
       }
+      const unreadCount = events.filter(e => e.unread).length;
       wrap.innerHTML = events.slice(0, 8).map(x =>
-        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') +
+        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') + (x.unread ? ' <span class="badge badge-warning">new</span>' : '') +
         '<div class="text-xs text-muted">By ' + AIC_SEC.escapeHtml(x.event.actorName || 'System') + ' · ' + formatDate(x.event.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div></div>'
-      ).join('');
+      ).join('') +
+      '<div class="mt-sm"><button class="btn btn-secondary btn-sm" id="btn-strategy-mark-read">Mark all as read' + (unreadCount ? ' (' + unreadCount + ')' : '') + '</button></div>';
+      const markBtn = document.getElementById('btn-strategy-mark-read');
+      if (markBtn) markBtn.addEventListener('click', () => { markSeenNow(); renderNotifications(); });
     }
     function statCard(label, value, sub, color) {
       return '<div class="stat-card" style="--accent-color:' + color + '"><div class="stat-label">' + AIC_SEC.escapeHtml(label) + '</div><div class="stat-value">' + AIC_SEC.escapeHtml(value) + '</div><div class="stat-sub">' + AIC_SEC.escapeHtml(sub) + '</div></div>';

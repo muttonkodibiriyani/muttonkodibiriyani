@@ -244,6 +244,15 @@ initPage({
         reader.readAsText(file);
       });
     }
+    function toDataUrlIfAllowed(file) {
+      if (!file || file.size > 1500 * 1024) return Promise.resolve('');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
     function renderAttachmentUploader(sectionKey, label) {
       const items = (state.attachments || []).filter(a => a.section === sectionKey);
       return '<div class="card mb-md" style="background:var(--color-surface2);">' +
@@ -406,11 +415,13 @@ initPage({
           const file = files[i];
           if (!file || file.size > 5 * 1024 * 1024) { showToast('Each file must be <= 5MB', 'warning'); continue; }
           const extractedText = await toTextIfPossible(file);
+          const dataUrl = await toDataUrlIfAllowed(file);
           state.attachments.push({
             section: section,
             name: file.name,
             type: file.type || 'application/octet-stream',
             size: file.size,
+            dataUrl: dataUrl,
             extractedText: extractedText
           });
         }

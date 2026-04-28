@@ -136,9 +136,38 @@ initPage({
               row('Markets', (init.markets && init.markets.length ? init.markets.join(', ') : init.country)) +
               row('Supporting Files', (init.attachments || []).length) +
             '</div>' +
+            '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Supporting Documents</h3></div>' +
+              ((init.attachments || []).length ? (init.attachments || []).map((a, idx) =>
+                '<div class="flex justify-between items-center text-sm" style="padding:6px 0;border-bottom:1px solid var(--color-border);">' +
+                '<span>' + SH(a.name || ('Attachment ' + (idx + 1))) + '</span>' +
+                '<button class="btn btn-secondary btn-sm" data-download-attachment="' + idx + '"><i class="fas fa-download"></i> Download</button></div>'
+              ).join('') : '<div class="text-sm text-muted">No supporting files uploaded.</div>') +
+            '</div>' +
             (init.financialCase ? '<div class="card"><div class="card-header"><h3 class="card-title">Financial Case</h3></div><p class="text-sm">' + SH(init.financialCase) + '</p></div>' : '') +
           '</div>' +
         '</div>';
+      document.querySelectorAll('[data-download-attachment]').forEach(btn => btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-download-attachment'));
+        const attachment = (init.attachments || [])[idx];
+        if (!attachment) return;
+        const fileName = attachment.name || ('attachment-' + (idx + 1) + '.txt');
+        const anchor = document.createElement('a');
+        if (attachment.dataUrl) {
+          anchor.href = attachment.dataUrl;
+          anchor.download = fileName;
+        } else if (attachment.extractedText) {
+          const blob = new Blob([attachment.extractedText], { type: 'text/plain;charset=utf-8' });
+          anchor.href = URL.createObjectURL(blob);
+          anchor.download = fileName.replace(/\.[^/.]+$/, '') + '-extracted.txt';
+          setTimeout(() => URL.revokeObjectURL(anchor.href), 2000);
+        } else {
+          showToast('File payload not available for download on this record.', 'warning');
+          return;
+        }
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }));
     }
     function renderActivity() {
       let events = (init.lifecycleEvents || []).slice();
@@ -344,6 +373,7 @@ initPage({
       if (init.councilVotes && init.councilVotes.length) {
         html += '<div class="card mb-md"><div class="card-header"><h3 class="card-title">Council Votes</h3></div>' +
           row('Average Council Score', init.councilScore) +
+          row('Votes Submitted', init.councilVotes.length + ' / ' + (init.councilQuorumRequired || 2)) +
           row('Final Recommendation', init.councilRecommendation) +
           row('Final Verdict', init.councilVerdict) +
           '<div class="mt-sm">' + init.councilVotes.map(v =>

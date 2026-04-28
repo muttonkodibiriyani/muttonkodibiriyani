@@ -147,6 +147,10 @@ initPage({
   onReady: async function (user) {
     let cache = AIC_DB.getInitiatives();
     let kanbanMode = false;
+    const MIN_CXO_VOTES = 2;
+    function seenKey() { return 'aic_seen_events_Investment_Committee_' + user.id; }
+    function getSeenTs() { return localStorage.getItem(seenKey()) || ''; }
+    function markSeenNow() { localStorage.setItem(seenKey(), new Date().toISOString()); }
 
     function renderStats() {
       const s = AIC_DB.getPortfolioSummary();
@@ -208,10 +212,11 @@ initPage({
     function renderNotifications() {
       const wrap = document.getElementById('cxo-notifications');
       const events = [];
+      const seenTs = getSeenTs();
       cache.forEach(i => {
         (i.lifecycleEvents || []).forEach(e => {
           if ((e.targetRoles || []).indexOf('Investment_Committee') >= 0) {
-            events.push({ initiativeId: i.id, title: i.title, event: e });
+            events.push({ initiativeId: i.id, title: i.title, event: e, unread: !seenTs || String(e.timestamp || '') > String(seenTs) });
           }
         });
       });
@@ -220,10 +225,14 @@ initPage({
         wrap.textContent = 'No workflow notifications for Investment Committee.';
         return;
       }
+      const unreadCount = events.filter(e => e.unread).length;
       wrap.innerHTML = events.slice(0, 8).map(x =>
-        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') +
+        '<div class="mb-sm"><strong>' + AIC_SEC.escapeHtml(x.initiativeId) + '</strong> — ' + AIC_SEC.escapeHtml(x.event.label || 'Update') + (x.unread ? ' <span class="badge badge-warning">new</span>' : '') +
         '<div class="text-xs text-muted">By ' + AIC_SEC.escapeHtml(x.event.actorName || 'System') + ' · ' + formatDate(x.event.timestamp, { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) + '</div></div>'
-      ).join('');
+      ).join('') +
+      '<div class="mt-sm"><button class="btn btn-secondary btn-sm" id="btn-cxo-mark-read">Mark all as read' + (unreadCount ? ' (' + unreadCount + ')' : '') + '</button></div>';
+      const markBtn = document.getElementById('btn-cxo-mark-read');
+      if (markBtn) markBtn.addEventListener('click', () => { markSeenNow(); renderNotifications(); });
     }
 
     function renderKanban() {
@@ -374,14 +383,17 @@ initPage({
         'CONDITIONAL':'Conditional Invest',
         'NO INVEST':'Rejected'
       })[topRecommendation];
-      const stageRelease = avgDecision !== 'Rejected' ? Math.round((init.budgetRequested || 0) * AIC_CONFIG.financial.stageFunding.stage0Pct) : 0;
+      const hasQuorum = updatedVotes.length >= MIN_CXO_VOTES;
+      const finalDecision = hasQuorum ? avgDecision : 'Pending Council Quorum';
+      const stageRelease = (hasQuorum && avgDecision !== 'Rejected') ? Math.round((init.budgetRequested || 0) * AIC_CONFIG.financial.stageFunding.stage0Pct) : 0;
       AIC_DB.updateInitiative(id, {
         councilVotes: updatedVotes,
         councilScore: avgScore,
-        decision: avgDecision,
-        status: avgDecision === 'Rejected' ? 'Rejected' : 'Approved by CXO',
-        stage: avgDecision === 'Rejected' ? 'Rejected' : 'Stage 0 — Discovery',
-        budgetApproved: avgDecision === 'Rejected' ? 0 : init.budgetRequested,
+        councilQuorumRequired: MIN_CXO_VOTES,
+        decision: finalDecision,
+        status: !hasQuorum ? 'Awaiting CXO Approval' : (avgDecision === 'Rejected' ? 'Rejected' : 'Approved by CXO'),
+        stage: !hasQuorum ? 'Awaiting Council' : (avgDecision === 'Rejected' ? 'Rejected' : 'Stage 0 — Discovery'),
+        budgetApproved: (!hasQuorum || avgDecision === 'Rejected') ? 0 : init.budgetRequested,
         stageRelease: stageRelease,
         councilVerdict: just.value,
         councilRecommendation: topRecommendation,
@@ -392,12 +404,12 @@ initPage({
         actorName: user.name,
         actorRole: user.role,
         targetRoles: ['Initiative_Submitter', 'Strategy_Reviewer'],
-        type: avgDecision === 'Rejected' ? 'REJECTED_CXO' : 'APPROVED_CXO',
-        label: avgDecision === 'Rejected' ? 'Rejected by CXO council' : 'Approved by CXO council',
-        details: 'Council vote recorded (' + updatedVotes.length + ' vote(s)); average score ' + avgScore + ', top recommendation ' + topRecommendation + '.'
+        type: !hasQuorum ? 'COUNCIL_VOTE_RECORDED' : (avgDecision === 'Rejected' ? 'REJECTED_CXO' : 'APPROVED_CXO'),
+        label: !hasQuorum ? 'Council vote recorded (awaiting quorum)' : (avgDecision === 'Rejected' ? 'Rejected by CXO council' : 'Approved by CXO council'),
+        details: 'Council vote recorded (' + updatedVotes.length + '/' + MIN_CXO_VOTES + ' votes); average score ' + avgScore + ', top recommendation ' + topRecommendation + '.'
       });
       AIC_SEC.audit('COUNCIL_VOTE', { id, score, recommendation: rec }, 'INFO');
-      showToast('Council vote recorded — ' + rec, 'success');
+      showToast(!hasQuorum ? ('Vote recorded. Waiting for quorum (' + updatedVotes.length + '/' + MIN_CXO_VOTES + ').') : ('Council vote recorded — ' + rec), !hasQuorum ? 'info' : 'success');
       closeModal();
       cache = AIC_DB.getInitiatives();
       renderStats(); renderNotifications(); renderTable(); renderCharts();
