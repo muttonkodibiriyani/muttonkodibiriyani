@@ -797,9 +797,10 @@ input[type=checkbox], input[type=radio] {
 }
 .login-hero {
   background:
-    radial-gradient(circle at 14% 18%, rgba(59,130,246,0.16), transparent 50%),
-    radial-gradient(circle at 88% 78%, rgba(99,102,241,0.14), transparent 55%),
-    linear-gradient(160deg, #0b1220 0%, #111c34 45%, #122249 100%);
+    radial-gradient(circle at 14% 18%, rgba(59,130,246,0.26), transparent 48%),
+    radial-gradient(circle at 88% 78%, rgba(99,102,241,0.22), transparent 55%),
+    radial-gradient(circle at 82% 14%, rgba(56,189,248,0.22), transparent 34%),
+    linear-gradient(160deg, #081226 0%, #0f1f3b 45%, #102447 100%);
   padding: 56px 64px;
   display: flex;
   flex-direction: column;
@@ -824,8 +825,8 @@ input[type=checkbox], input[type=radio] {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 84% 14%, rgba(255,255,255,0.06), transparent 38%),
-    linear-gradient(180deg, rgba(2,6,23,0.05), rgba(2,6,23,0.18));
+    radial-gradient(circle at 84% 14%, rgba(255,255,255,0.11), transparent 38%),
+    linear-gradient(180deg, rgba(2,6,23,0.02), rgba(2,6,23,0.2));
   pointer-events: none;
 }
 .login-brand {
@@ -958,18 +959,31 @@ input[type=checkbox], input[type=radio] {
 }
 
 .login-panel {
-  background: #ffffff;
+  background: radial-gradient(circle at 20% 0%, rgba(255,255,255,0.9), rgba(255,255,255,0.75) 45%, rgba(248,250,252,0.78) 100%);
   padding: 56px 56px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
 }
-.login-panel-inner { width: 100%; max-width: 400px; margin: 0 auto; }
+.login-panel-inner {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  border: 1px solid rgba(203,213,225,0.85);
+  border-radius: 24px;
+  background: rgba(255,255,255,0.74);
+  box-shadow: 0 20px 50px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.65);
+  backdrop-filter: blur(12px) saturate(155%);
+  -webkit-backdrop-filter: blur(12px) saturate(155%);
+  padding: 24px 22px;
+}
 .signin-head { margin-bottom: 24px; }
 .login-panel h2 { font-size: 22px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
 .login-panel .login-sub { color: var(--color-muted); font-size: 13px; margin: 0; line-height: 1.55; }
 .btn-aad { background: #2f2f2f; }
-.btn-aad:hover:not(:disabled) { background: #1f1f1f; }
+.btn-aad:hover:not(:disabled) { background: #111827; }
 .login-divider {
   display: flex;
   align-items: center;
@@ -996,6 +1010,12 @@ input[type=checkbox], input[type=radio] {
   color: var(--color-muted);
 }
 .signin-foot i { color: var(--color-success); margin-right: 5px; }
+.signin-head,
+.form-group,
+.signin-foot {
+  position: relative;
+  z-index: 1;
+}
 
 /* Demo profile picker */
 .demo-cards {
@@ -1009,8 +1029,8 @@ input[type=checkbox], input[type=radio] {
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: #ffffff;
-  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.84));
+  border: 1px solid rgba(203,213,225,0.85);
   border-radius: 12px;
   padding: 12px 14px;
   cursor: pointer;
@@ -1031,13 +1051,13 @@ input[type=checkbox], input[type=radio] {
   border-color: rgba(99,102,241,0.45);
   background: #f9fbff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+  box-shadow: 0 10px 26px rgba(15,23,42,0.1);
 }
 .demo-card:hover::before { background: var(--color-accent); }
 .demo-card .dc-icon {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  background: linear-gradient(135deg, rgba(238,242,255,0.95), rgba(224,231,255,0.95));
   color: #4338ca;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
