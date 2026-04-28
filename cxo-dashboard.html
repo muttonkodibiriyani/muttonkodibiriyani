@@ -78,7 +78,7 @@
         <div class="card-header"><h3 class="card-title">All Initiatives</h3></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Title</th><th>Domain</th><th>Status</th><th>Stage</th><th>GK</th><th>Council</th><th>Budget</th><th>Spent</th><th></th></tr></thead>
+            <thead><tr><th>ID</th><th>Title</th><th>Domain</th><th>Status</th><th>Stage</th><th>GK</th><th>Shark</th><th>Council</th><th>Budget</th><th>Spent</th><th></th></tr></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
@@ -175,6 +175,7 @@ initPage({
         '<td><span class="badge ' + statusClass(i.status) + '">' + AIC_SEC.escapeHtml(i.status) + '</span></td>' +
         '<td class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.stage) + '</td>' +
         '<td>' + (i.gatekeeperScore != null ? '<span class="badge ' + scoreClass(i.gatekeeperScore) + '">' + i.gatekeeperScore + '</span>' : '—') + '</td>' +
+        '<td>' + (i.sharkCouncilScore != null ? '<span class="badge ' + scoreClass(i.sharkCouncilScore) + '">' + i.sharkCouncilScore + '</span>' : '—') + '</td>' +
         '<td>' + (i.councilScore != null ? '<span class="badge ' + scoreClass(i.councilScore) + '">' + i.councilScore + '</span>' : '—') + '</td>' +
         '<td>' + formatCurrency(i.budgetRequested,'USD',true) + '</td>' +
         '<td>' + formatCurrency(i.budgetSpent,'USD',true) + '</td>' +

@@ -96,7 +96,7 @@
           <table>
             <thead><tr>
               <th>Title</th><th>Domain</th><th>Status</th><th>Stage</th>
-              <th>Submitted</th><th>Budget</th><th>GK Score</th><th></th>
+              <th>Submitted</th><th>Budget</th><th>GK Score</th><th>Shark Score</th><th></th>
             </tr></thead>
             <tbody id="tbody-mine"></tbody>
           </table>
@@ -220,7 +220,7 @@ initPage({
     function renderMine() {
       const tb = document.getElementById('tbody-mine');
       const rows = applyFilter(cache);
-      if (!rows.length) { tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted p-lg">No initiatives yet — click <strong>New Initiative</strong> to get started.</td></tr>'; return; }
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="text-center text-muted p-lg">No initiatives yet — click <strong>New Initiative</strong> to get started.</td></tr>'; return; }
       tb.innerHTML = rows.map(i =>
         '<tr class="clickable" data-id="' + AIC_SEC.encodeAttr(i.id) + '">' +
           '<td><div style="font-weight:600;">' + AIC_SEC.escapeHtml(i.title) + '</div><div class="text-xs text-muted">' + AIC_SEC.escapeHtml(i.id) + '</div>' + renderStatusTimeline(i) + '</td>' +
@@ -230,6 +230,7 @@ initPage({
           '<td class="text-xs">' + formatDate(i.submittedDate) + '</td>' +
           '<td class="font-semibold">' + formatCurrency(i.budgetRequested, 'USD', true) + '</td>' +
           '<td>' + (i.gatekeeperScore != null ? '<span class="badge ' + scoreClass(i.gatekeeperScore) + '">' + i.gatekeeperScore + '</span>' : '<span class="text-muted text-xs">—</span>') + '</td>' +
+          '<td>' + (i.sharkCouncilScore != null ? '<span class="badge ' + scoreClass(i.sharkCouncilScore) + '">' + i.sharkCouncilScore + '</span>' : '<span class="text-muted text-xs">—</span>') + '</td>' +
           '<td><button class="btn btn-sm btn-secondary" data-view="' + AIC_SEC.encodeAttr(i.id) + '"><i class="fas fa-eye"></i> View</button></td>' +
         '</tr>'
       ).join('');
@@ -340,7 +341,7 @@ initPage({
     document.getElementById('btn-export').addEventListener('click', () => {
       const rows = cache.map(i => ({
         ID: i.id, Title: i.title, Domain: i.domain, Status: i.status, Stage: i.stage,
-        Submitted: i.submittedDate, Budget: i.budgetRequested, GatekeeperScore: i.gatekeeperScore, CouncilScore: i.councilScore
+        Submitted: i.submittedDate, Budget: i.budgetRequested, GatekeeperScore: i.gatekeeperScore, SharkScore: i.sharkCouncilScore, CouncilScore: i.councilScore
       }));
       exportToCsv('aic-my-initiatives-' + new Date().toISOString().slice(0,10) + '.csv', rows);
     });

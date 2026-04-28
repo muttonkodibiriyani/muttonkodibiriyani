@@ -106,6 +106,7 @@ initPage({
         '<span class="chip"><i class="fas fa-flag"></i> ' + SH(init.priority || 'Strategic') + '</span>';
       document.getElementById('hd-rings').innerHTML =
         '<div class="text-center"><div class="text-xs text-muted">Gatekeeper</div><div class="score-ring score-ring-sm ' + scoreRingClass(init.gatekeeperScore) + '">' + (init.gatekeeperScore != null ? init.gatekeeperScore : '—') + '</div></div>' +
+        '<div class="text-center"><div class="text-xs text-muted">Shark</div><div class="score-ring score-ring-sm ' + scoreRingClass(init.sharkCouncilScore) + '">' + (init.sharkCouncilScore != null ? init.sharkCouncilScore : '—') + '</div></div>' +
         '<div class="text-center"><div class="text-xs text-muted">Council</div><div class="score-ring score-ring-sm ' + scoreRingClass(init.councilScore) + '">' + (init.councilScore != null ? init.councilScore : '—') + '</div></div>';
     }
 
