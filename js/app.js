@@ -244,6 +244,7 @@ async function initPage(opts) {
   renderSidebarUser(user);
   highlightCurrentNav();
   applyRoleNavVisibility(user);
+  renderExecutiveTopbar(user.role);
 
   const sb = document.querySelector('.signout-btn');
   if (sb) sb.addEventListener('click', signOut);
@@ -283,6 +284,22 @@ function applyRoleNavVisibility(user) {
   document.querySelectorAll('[data-admin-only]').forEach(el => {
     if (role !== 'Platform_Admin') el.remove();
   });
+}
+function renderExecutiveTopbar(role) {
+  const top = document.querySelector('.top-bar');
+  if (!top || top.querySelector('.exec-command')) return;
+  const actions = top.querySelector('.top-actions');
+  if (!actions) return;
+  const roleLabel = (role || '').replace(/_/g, ' ');
+  const command = document.createElement('div');
+  command.className = 'exec-command';
+  command.innerHTML =
+    '<div class="exec-search"><i class="fas fa-search"></i><input type="text" placeholder="Search initiatives, sponsors, domains..." /></div>' +
+    '<span class="exec-cycle">FY26 · Q2 Review Cycle</span>' +
+    '<button type="button" class="exec-btn"><i class="fas fa-bolt"></i> Command</button>' +
+    '<button type="button" class="exec-btn"><i class="fas fa-bell"></i></button>' +
+    '<span class="exec-role">' + AIC_SEC.escapeHtml(roleLabel || 'Workspace') + '</span>';
+  top.insertBefore(command, actions);
 }
 
 /* ------------------ Data export ------------------ */
@@ -430,6 +447,7 @@ window.initPage = initPage;
 window.renderSidebarUser = renderSidebarUser;
 window.highlightCurrentNav = highlightCurrentNav;
 window.applyRoleNavVisibility = applyRoleNavVisibility;
+window.renderExecutiveTopbar = renderExecutiveTopbar;
 window.exportToCsv = exportToCsv;
 window.paginate = paginate;
 window.AIC_CHARTS = AIC_CHARTS;

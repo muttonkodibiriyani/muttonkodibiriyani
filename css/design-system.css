@@ -175,6 +175,56 @@ a:hover { text-decoration: underline; }
 }
 .top-bar h1 { font-size: 18px; font-weight: 600; margin: 0; }
 .top-bar .top-actions { display: flex; gap: 10px; align-items: center; }
+.exec-command {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  margin-right: 10px;
+}
+.exec-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 7px 10px;
+  min-width: 320px;
+}
+.exec-search i { color: var(--color-muted); font-size: 12px; }
+.exec-search input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 12px;
+  background: transparent;
+}
+.exec-cycle {
+  font-size: 11px;
+  color: var(--color-accent);
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.24);
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.exec-btn {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border-radius: 9px;
+  color: var(--color-text);
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.exec-btn:hover { background: var(--color-surface2); }
+.exec-role {
+  font-size: 11px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 .page-body { padding: var(--space-xl); flex: 1; }
 
 /* ==========================================================================
@@ -1116,6 +1166,7 @@ input[type=checkbox], input[type=radio] {
   .kanban { grid-template-columns: 1fr; }
   .shark-grid { grid-template-columns: 1fr; }
   .top-bar { padding: 0 16px; }
+  .exec-command { display: none; }
   .page-body { padding: 16px; }
 }
 
